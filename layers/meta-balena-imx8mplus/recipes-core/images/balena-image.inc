@@ -10,15 +10,23 @@ IMAGE_INSTALL:append = " \
     linux-firmware-ax210 \
     firmware-imx-sdma-imx7d \
     wireless-regdb-static \
-    imx-firmware-mrvl \
     eeprom-util \
     keyctl-caam \
     mbpoll \
     mp-verification-tool \
     libgpiod \
     libgpiod-tools \
+    "
+
+IMAGE_INSTALL:append:iotdin-imx8p = " \
+    linux-firmware-sd8997 \
     iotd-imx8p-config \
     "
+
+IMAGE_INSTALL:append:iot-gate-imx8plus = " \
+    iot-gate-imx8plus-config \
+    "
+
 IMAGE_INSTALL:remove = "kernel-image"
 IMAGE_INSTALL:remove = "packagegroup-fsl-optee-imx"
 IMAGE_INSTALL:remove = "jailhouse"
