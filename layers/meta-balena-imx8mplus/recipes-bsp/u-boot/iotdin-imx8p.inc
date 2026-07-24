@@ -1,4 +1,4 @@
-SRCREV = "86b924310f84d7a026ccb6101734385cc917959f"
+SRCREV = "facddf8faa629f07cffb2dae8b92d6f6a96e9583"
 
 SRC_URI:append = " \
 	file://10000-compulab-imx8m-plus-evnironment-Update-for-the-Bale.patch \
