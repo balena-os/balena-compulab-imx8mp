@@ -5,7 +5,7 @@ BALENA_BOOT_PARTITION_FILES:append = " \
 "
 
 IMAGE_INSTALL:append = " \
-    imx-boot \
+    u-boot-compulab \
     linux-firmware-ax200 \
     linux-firmware-ax210 \
     firmware-imx-sdma-imx7d \

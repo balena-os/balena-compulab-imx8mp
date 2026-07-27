@@ -13,7 +13,7 @@
 [submodule "layers/meta-bsp-imx8mp"]
 	path = layers/meta-bsp-imx8mp
 	url = https://github.com/compulab-yokneam/meta-bsp-imx8mp.git
-	branch = scarthgap
+	branch = scarthgap-balena
 [submodule "layers/poky"]
 	path = layers/poky
 	url = https://github.com/balena-os/poky
