@@ -2,6 +2,13 @@
 
 # v6.0.5
 
+# v7.7.2
+## (2026-07-27)
+
+* layers/meta-balena: Update to v7.7.2 [Alexandru Costache]
+* layers/meta-bsp-imx8mp: Update the layer revision [Valentin Raevsky]
+* layers/meta-bsp-imx8mp: Update the layer revision [Valentin Raevsky]
+
 # v7.7.1
 ## (2026-07-24)
 

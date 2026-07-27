@@ -1,4 +1,40 @@
 - commits:
+    - subject: "layers/meta-balena: Update to v7.7.2"
+      hash: c6ed3c8453fe3cfd01bb79c06e1e959bde57639e
+      body: ""
+      footer:
+        Changelog-entry: "layers/meta-balena: Update to v7.7.2"
+        changelog-entry: "layers/meta-balena: Update to v7.7.2"
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+    - subject: "layers/meta-bsp-imx8mp: Update the layer revision"
+      hash: 5ce697585965d2a3ecc5bd004394a48501d588cf
+      body: |
+        Update the layer revision in order to address the d1d8 build issue.
+      footer:
+        Changelog-entry: "layers/meta-bsp-imx8mp: Update the layer revision"
+        changelog-entry: "layers/meta-bsp-imx8mp: Update the layer revision"
+        Signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+        signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+      author: Valentin Raevsky
+      nested: []
+    - subject: "layers/meta-bsp-imx8mp: Update the layer revision"
+      hash: 2c2e9afb63512442070d6264a945c857e523a55e
+      body: |
+        CompuLab created a dedicated BalenaOS branch for this platform.
+      footer:
+        Changelog-entry: "layers/meta-bsp-imx8mp: Update the layer revision"
+        changelog-entry: "layers/meta-bsp-imx8mp: Update the layer revision"
+        Signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+        signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+      author: Valentin Raevsky
+      nested: []
+  version: 7.7.2
+  title: ""
+  date: 2026-07-27T16:10:24.139Z
+- commits:
     - subject: Update layers/meta-balena to 39c491e9d0a69b17cbb27e4305affa4ed8174618
       hash: bf118fd66a94976581c30fd745b3530e8994fb1a
       body: Update layers/meta-balena
