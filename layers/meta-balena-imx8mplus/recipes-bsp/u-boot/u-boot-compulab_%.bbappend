@@ -7,7 +7,7 @@ DEPENDS = "bison-native gnutls-native"
 BALENA_DEVICE_FDT_ADDR_VAR ?= "fdt_addr_r"
 
 # Use the MACHINE specific inc file
-require ${MACHINE}.inc
+require compulab-imx8mp.inc
 
 # To use do_configure() provided by poky/meta/recipes-bsp/u-boot/u-boot-configure.inc
 # just make the merge_config.sh issue w/out the full path
