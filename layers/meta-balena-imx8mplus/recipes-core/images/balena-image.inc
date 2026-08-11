@@ -12,8 +12,11 @@ BALENA_BOOT_PARTITION_FILES:append:iot-gate-imx8plus = " \
     balena-bootloader/bootenv:/bootenv \
 "
 
-do_rootfs[depends] += " virtual/balena-bootloader:do_deploy"
-do_image_balenaos_img[depends] += " virtual/balena-bootloader:do_deploy"
+BALENA_BOOTLOADER_DEPLOY_DEPENDENCY = ""
+BALENA_BOOTLOADER_DEPLOY_DEPENDENCY:iot-gate-imx8plus = "virtual/balena-bootloader:do_deploy"
+
+do_rootfs[depends] += " ${BALENA_BOOTLOADER_DEPLOY_DEPENDENCY}"
+do_image_balenaos_img[depends] += " ${BALENA_BOOTLOADER_DEPLOY_DEPENDENCY}"
 
 IMAGE_INSTALL:append = " \
     u-boot-compulab \
