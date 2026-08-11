@@ -106,7 +106,7 @@ jobs:
     with:
       machine: iotdin-imx8p
       # Hardcode the device repo in case this workflow is called by another workflow
-      device-repo: balena-os/balena-iotdin-imx8p
+      device-repo: balena-os/balena-compulab-imx8mp
       device-repo-ref: ${{ inputs.device-repo-ref || github.ref }}
       test_matrix: ${{ needs.get_inputs.outputs.test_matrix }}
       # Allow manual workflow runs to force finalize without checking previous test runs
