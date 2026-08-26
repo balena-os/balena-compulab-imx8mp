@@ -4,21 +4,44 @@ BALENA_BOOT_PARTITION_FILES:append = " \
     imx-boot_${MACHINE}_${DRAM_CONF}:/imx-boot-${MACHINE}-sd.bin-flash_evk \
 "
 
+KERNEL_DEVICE_TREES = "${@' '.join(map(str, [os.path.join('balena-bootloader', os.path.basename(dt) + ':/' + os.path.basename(dt)) for dt in d.getVar('KERNEL_DEVICETREE').split()]))}"
+
+BALENA_BOOT_PARTITION_FILES:append:iot-gate-imx8plus = " \
+    ${KERNEL_DEVICE_TREES} \
+    balena-bootloader/${KERNEL_IMAGETYPE}-initramfs-${MACHINE}.bin:/${KERNEL_IMAGETYPE} \
+    balena-bootloader/bootenv:/bootenv \
+"
+
+BALENA_BOOTLOADER_DEPLOY_DEPENDENCY = ""
+BALENA_BOOTLOADER_DEPLOY_DEPENDENCY:iot-gate-imx8plus = "virtual/balena-bootloader:do_deploy"
+
+do_rootfs[depends] += " ${BALENA_BOOTLOADER_DEPLOY_DEPENDENCY}"
+do_image_balenaos_img[depends] += " ${BALENA_BOOTLOADER_DEPLOY_DEPENDENCY}"
+
 IMAGE_INSTALL:append = " \
     u-boot-compulab \
     linux-firmware-ax200 \
     linux-firmware-ax210 \
     firmware-imx-sdma-imx7d \
     wireless-regdb-static \
-    imx-firmware-mrvl \
     eeprom-util \
     keyctl-caam \
     mbpoll \
     mp-verification-tool \
     libgpiod \
     libgpiod-tools \
+    "
+
+IMAGE_INSTALL:append:iotdin-imx8p = " \
+    linux-firmware-sd8997 \
     iotd-imx8p-config \
     "
+
+IMAGE_INSTALL:append:iot-gate-imx8plus = " \
+    grub-editenv \
+    iot-gate-imx8plus-config \
+    "
+
 IMAGE_INSTALL:remove = "kernel-image"
 IMAGE_INSTALL:remove = "packagegroup-fsl-optee-imx"
 IMAGE_INSTALL:remove = "jailhouse"
