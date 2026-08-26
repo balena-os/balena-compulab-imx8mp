@@ -2,6 +2,11 @@
 
 # v6.0.5
 
+# v7.7.2+rev1
+## (2026-08-26)
+
+* Adapt .github/workflows to repo name change [Florin Sarbu]
+
 # v7.7.2
 ## (2026-07-27)
 

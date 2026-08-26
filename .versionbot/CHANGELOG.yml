@@ -1,4 +1,20 @@
 - commits:
+    - subject: Adapt .github/workflows to repo name change
+      hash: f58c732cee3c3ae82c03a49e08fd3a8070890cf7
+      body: >
+        The repo has been renamed from balena-iotdin-imx8p to
+        balena-compulab-imx8mp
+      footer:
+        Changelog-entry: Adapt .github/workflows to repo name change
+        changelog-entry: Adapt .github/workflows to repo name change
+        Signed-off-by: Florin Sarbu <florin@balena.io>
+        signed-off-by: Florin Sarbu <florin@balena.io>
+      author: Florin Sarbu
+      nested: []
+  version: 7.7.2+rev1
+  title: ""
+  date: 2026-08-26T09:14:58.587Z
+- commits:
     - subject: "layers/meta-balena: Update to v7.7.2"
       hash: c6ed3c8453fe3cfd01bb79c06e1e959bde57639e
       body: ""
