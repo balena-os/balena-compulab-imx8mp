@@ -1,1 +1,0 @@
-iotdin-imx8p.inc
