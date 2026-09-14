@@ -38,3 +38,7 @@
 	path = layers/meta-cyclonedx
 	url = https://github.com/balena-os/meta-cyclonedx
 	branch = kirkstone
+[submodule "layers/meta-balena-hab"]
+	path = layers/meta-balena-hab
+	url = https://github.com/balena-os/meta-balena-hab.git
+	branch = master
