@@ -25,7 +25,7 @@
 [submodule "layers/meta-compulab-bsp"]
 	path = layers/meta-compulab-bsp
 	url = https://github.com/compulab-yokneam/meta-compulab-bsp
-	branch = honister
+	branch = scarthgap
 [submodule "layers/meta-freescale"]
 	path = layers/meta-freescale
 	url = https://github.com/Freescale/meta-freescale
@@ -38,3 +38,10 @@
 	path = layers/meta-cyclonedx
 	url = https://github.com/balena-os/meta-cyclonedx
 	branch = kirkstone
+[submodule "layers/meta-balena-hab"]
+	path = layers/meta-balena-hab
+	url = https://github.com/balena-os/meta-balena-hab.git
+	branch = master
+[submodule "layers/meta-imx8mp-isp-imx219"]
+	path = layers/meta-imx8mp-isp-imx219
+	url = https://github.com/compulab-yokneam/meta-imx8mp-isp-imx219.git
