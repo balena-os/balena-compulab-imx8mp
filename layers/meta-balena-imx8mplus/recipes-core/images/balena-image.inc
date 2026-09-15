@@ -53,3 +53,9 @@ BALENA_BOOT_SIZE:iotdin-imx8p-d1d8 = "40960"
 BALENA_STATE_SIZE:iotdin-imx8p-d1d8 = "20480"
 BALENA_BOOT_SIZE:iotdin-imx8p = "40960"
 BALENA_STATE_SIZE:iotdin-imx8p = "20480"
+
+BALENA_BOOT_SIZE:iot-gate-imx8plus-d1d8 = "40960"
+BALENA_STATE_SIZE:iot-gate-imx8plus-d1d8 = "20480"
+BALENA_BOOT_SIZE:iot-gate-imx8plus = "40960"
+BALENA_STATE_SIZE:iot-gate-imx8plus = "20480"
+
