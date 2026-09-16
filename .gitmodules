@@ -17,11 +17,11 @@
 [submodule "layers/poky"]
 	path = layers/poky
 	url = https://github.com/balena-os/poky
-	branch = kirkstone
+	branch = scarthgap
 [submodule "layers/meta-openembedded"]
 	path = layers/meta-openembedded
 	url = https://github.com/openembedded/meta-openembedded
-	branch = kirkstone-next
+	branch = scarthgap
 [submodule "layers/meta-compulab-bsp"]
 	path = layers/meta-compulab-bsp
 	url = https://github.com/compulab-yokneam/meta-compulab-bsp
@@ -29,12 +29,15 @@
 [submodule "layers/meta-freescale"]
 	path = layers/meta-freescale
 	url = https://github.com/Freescale/meta-freescale
-	branch = kirkstone
+	branch = scarthgap
 [submodule "layers/meta-imx"]
 	path = layers/meta-imx
 	url = https://github.com/nxp-imx/meta-imx.git
-	branch = kirkstone-5.15.71-2.2.2
+	branch = scarthgap-6.6.52-2.2.0
 [submodule "layers/meta-cyclonedx"]
 	path = layers/meta-cyclonedx
 	url = https://github.com/balena-os/meta-cyclonedx
-	branch = kirkstone
+	branch = scarthgap
+[submodule "layers/meta-arm"]
+	path = layers/meta-arm
+	url = https://git.yoctoproject.org/meta-arm
