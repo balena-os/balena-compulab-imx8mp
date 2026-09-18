@@ -1,0 +1,41 @@
+From 26d899b35eefa57bba6deaf82aabd93a82d79707 Mon Sep 17 00:00:00 2001
+From: Alexandru Costache <alexandru@balena.io>
+Date: Tue, 15 Sep 2026 11:39:41 +0000
+Subject: [PATCH] Enable HDMI output by default, add clk_ignore_unused and
+ BALENA_STAGE2 to mmcargs
+
+The i.MX8MP's HDMI Hot Plug Detect (HPD) does not reliably detect
+connected displays on the IOT-GATE-IMX8PLUS, resulting in the DRM
+subsystem never activating the HDMI output. Add video=HDMI-A-1:D to
+the default kernel command line to force the HDMI connector on,
+allowing EDID to be read and a display mode to be set automatically.
+
+Add clk_ignore_unused to u-boot mmcargs to prevent Linux from
+ gating M7 clocks while the co-processor is running
+
+This is part of the Cortex-M7 support for the iot-gate-imx8plus,
+and is added in a separate patch so that the change is not accidentally
+missed when migrating u-boot changes to balena-bootloader.
+
+Upstream-status: inappropriate [configuration]
+Signed-off-by: Shaun Mulligan <shaun@balena.io>
+---
+ include/configs/compulab-imx8m-plus.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/configs/compulab-imx8m-plus.h b/include/configs/compulab-imx8m-plus.h
+index abd33ef557e..ae61b202aa6 100644
+--- a/include/configs/compulab-imx8m-plus.h
++++ b/include/configs/compulab-imx8m-plus.h
+@@ -79,7 +79,7 @@
+ 	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+ 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+-	"mmcargs=setenv bootargs console=${console} ${resin_kernel_root} ${os_cmdline}\0 " \
++	"mmcargs=setenv bootargs console=${console} ${resin_kernel_root} ${os_cmdline} video=HDMI-A-1:D clk_ignore_unused "__stringify(BALENA_STAGE2)" \0 " \
+ 	"loadbootscript=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bsp_script};\0" \
+ 	"bootscript=echo Running bootscript from mmc ...; " \
+ 		"source\0" \
+-- 
+2.34.1
+
