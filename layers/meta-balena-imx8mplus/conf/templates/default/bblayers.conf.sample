@@ -7,8 +7,11 @@ BBFILES ?= ""
 
 BBLAYERS ?= " \
     ${TOPDIR}/../layers/meta-balena/meta-balena-rust \
+    ${TOPDIR}/../layers/meta-arm/meta-arm \
+    ${TOPDIR}/../layers/meta-arm/meta-arm-toolchain \
+    ${TOPDIR}/../layers/meta-imx/meta-imx-bsp \
     ${TOPDIR}/../layers/meta-balena/meta-balena-common \
-    ${TOPDIR}/../layers/meta-balena/meta-balena-kirkstone \
+    ${TOPDIR}/../layers/meta-balena/meta-balena-scarthgap \
     ${TOPDIR}/../layers/meta-balena-imx8mplus \
     ${TOPDIR}/../layers/poky/meta \
     ${TOPDIR}/../layers/poky/meta-poky \
@@ -16,7 +19,6 @@ BBLAYERS ?= " \
     ${TOPDIR}/../layers/meta-openembedded/meta-python \
     ${TOPDIR}/../layers/meta-openembedded/meta-perl \
     ${TOPDIR}/../layers/meta-freescale \
-    ${TOPDIR}/../layers/meta-imx/meta-bsp \
     ${TOPDIR}/../layers/meta-bsp-imx8mp \
     ${TOPDIR}/../layers/meta-compulab-bsp/meta-bsp \
     ${TOPDIR}/../layers/meta-compulab-bsp/meta-utils \

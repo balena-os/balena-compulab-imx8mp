@@ -6,14 +6,21 @@ DEPENDS = "bison-native gnutls-native"
 
 BALENA_DEVICE_FDT_ADDR_VAR ?= "fdt_addr_r"
 
+BALENA_STAGE2 = "balena_stage2"
+UBOOT_VARS += "BALENA_STAGE2"
+
 # Use the MACHINE specific inc file
-require ${MACHINE}.inc
+require compulab-imx8mp.inc
 
 # To use do_configure() provided by poky/meta/recipes-bsp/u-boot/u-boot-configure.inc
 # just make the merge_config.sh issue w/out the full path
 do_configure:prepend () {
     export PATH=${PATH}:${S}/scripts/kconfig/
 }
+
+SRC_URI:append:iot-gate-imx8plus = " \
+        file://0001-Enable-HDMI-output-by-default-add-clk_ignore_unused-.patch \
+"
 
 do_unpack[nostamp]="1"
 do_patch[nostamp]="1"
