@@ -18,10 +18,6 @@ do_configure:prepend () {
     export PATH=${PATH}:${S}/scripts/kconfig/
 }
 
-SRC_URI:append:iot-gate-imx8plus = " \
-        file://0001-Enable-HDMI-output-by-default-add-clk_ignore_unused-.patch \
-"
-
 do_unpack[nostamp]="1"
 do_patch[nostamp]="1"
 do_configure[nostamp] = "1"
