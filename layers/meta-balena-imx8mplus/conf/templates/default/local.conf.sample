@@ -66,6 +66,8 @@ HOSTTOOLS:remove = "cc"
 HOSTTOOLS += "docker iptables"
 
 ACCEPT_FSL_EULA = "1"
+# we are still using meta-imx at branch scarthgap-6.6.52-2.2.0 but have moved on to newer meta-freescale on branch scarthgap which uses a newer v63 FSL EULA
+FSL_EULA_FILE_MD5SUM = "bc649096ad3928ec06a8713b8d787eac"
 
 # CycloneDX SBOM and VEX generation
 INHERIT += "cyclonedx-export"
