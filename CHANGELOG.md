@@ -2,6 +2,17 @@
 
 # v6.0.5
 
+# v8.0.10+rev1
+## (2026-09-24)
+
+* Switch to Scarthgap [Florin Sarbu]
+* Fix meta-compulab-bsp branch to scarthgap [guille-vega]
+* Set explicit partition size overrides for each machine [Alexandru Costache]
+* machine: Clarify DRAM sizes in device names [Alexandru Costache]
+* .github: Bring in workflow files from iot-gate-imx8plus source repository [Alexandru Costache]
+* layers/meta-bsp-imx8mp: Update the layer revision [Valentin Raevsky]
+* Add iot-gate-imx8plus device support [Valentin Raevsky]
+
 # v8.0.10
 ## (2026-09-14)
 

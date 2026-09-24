@@ -1,4 +1,95 @@
 - commits:
+    - subject: Switch to Scarthgap
+      hash: 4fa4b6a5055d4f5b3bdde1e6b0a1b50883b3e4a9
+      body: |
+        We properly switch all relevant submodules to scarthgap branches
+      footer:
+        Changelog-entry: Switch to Scarthgap
+        changelog-entry: Switch to Scarthgap
+        Signed-off-by: Florin Sarbu <florin@balena.io>
+        signed-off-by: Florin Sarbu <florin@balena.io>
+      author: Florin Sarbu
+      nested: []
+    - subject: Fix meta-compulab-bsp branch to scarthgap
+      hash: bcae77ec0b94b1e0117f473e13d54384cf762bf6
+      body: ""
+      footer:
+        Changelog-entry: Fix meta-compulab-bsp branch to scarthgap
+        changelog-entry: Fix meta-compulab-bsp branch to scarthgap
+        Signed-off-by: guille-vega <guillermo.vega@balena.io>
+        signed-off-by: guille-vega <guillermo.vega@balena.io>
+      author: guille-vega
+      nested: []
+    - subject: Set explicit partition size overrides for each machine
+      hash: dd01fdbc0196010b0fa81ccb30eec5d45ea715e4
+      body: |
+        Ensure IMAGE_ROOTFS_SIZE, BALENA_BOOT_SIZE, and BALENA_STATE_SIZE are
+        explicitly defined for every machine target
+
+        Changes have been brought in from https://github.com/balena-os/balena-iot-gate-imx8plus/commit/1e4a3eeac20c8db24036c95b57b76ce6bef835b2
+      footer:
+        Changelog-entry: Set explicit partition size overrides for each machine
+        changelog-entry: Set explicit partition size overrides for each machine
+        Signed-off-by: guille-vega <guillermo.vega@balena.io>
+        signed-off-by: guille-vega <guillermo.vega@balena.io>
+      author: Alexandru Costache
+      nested: []
+    - subject: "machine: Clarify DRAM sizes in device names"
+      hash: 41c6185a4940384b2107b6686a05776bc9d7b0e9
+      body: |
+        Update the device names in the configuration files to explicitly state
+        the RAM variants (e.g. changing from hyphenated ranges like "1G-8G"
+        to explicit sizes like "1GB or 8GB"). This improves clarity for users.
+
+        Brought in from https://github.com/balena-os/balena-iot-gate-imx8plus/commit/f3c3d5d46c51a00bb0ffe76cd1f19f4e0fd18051
+      footer:
+        Changelog-entry: "machine: Clarify DRAM sizes in device names"
+        changelog-entry: "machine: Clarify DRAM sizes in device names"
+        Signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+        signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+      author: Alexandru Costache
+      nested: []
+    - subject: ".github: Bring in workflow files from iot-gate-imx8plus source
+        repository"
+      hash: fcc7c3ea3c697d2a1489b3ee1b78dd92745b30ea
+      body: |
+        github.com/balena-os/balena-iot-gate-imx8plus at revision
+        v8.0.10
+      footer:
+        Changelog-entry: ".github: Bring in workflow files from iot-gate-imx8plus source
+          repository"
+        changelog-entry: ".github: Bring in workflow files from iot-gate-imx8plus source
+          repository"
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+    - subject: "layers/meta-bsp-imx8mp: Update the layer revision"
+      hash: 1dbc70214043ccc0278c4df13e57d9157a0c6eea
+      body: |
+        Update the layer revision in order to allow supporting
+        the compulab-imx8mp iot devices.
+      footer:
+        Changelog-entry: "layers/meta-bsp-imx8mp: Update the layer revision"
+        changelog-entry: "layers/meta-bsp-imx8mp: Update the layer revision"
+        Signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+        signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+      author: Valentin Raevsky
+      nested: []
+    - subject: Add iot-gate-imx8plus device support
+      hash: 5fef21f2d6ad9be5c8a591dbd7d1d28df0703dd8
+      body: ""
+      footer:
+        Changelog-entry: Add iot-gate-imx8plus device support
+        changelog-entry: Add iot-gate-imx8plus device support
+        Signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+        signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+      author: Valentin Raevsky
+      nested: []
+  version: 8.0.10+rev1
+  title: ""
+  date: 2026-09-24T22:26:46.862Z
+- commits:
     - subject: Update layers/meta-balena to 84a61cce6adbcb6bfe05cf08a96f6fe415359104
       hash: 42467298971bf2a44247d34b973afee40f33022f
       body: Update layers/meta-balena
