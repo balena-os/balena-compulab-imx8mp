@@ -4,6 +4,11 @@ inherit kernel-yocto kernel fsl-kernel-localversion balena-bootloader
 
 BALENA_DEFCONFIG_NAME = "iot-gate-imx8plus_defconfig"
 
+SRC_URI:append:iot-gate-imx8plus = " \
+    file://0204-add-iot-gate-imx8plus-m7-device-tree.patch \
+    file://0105-add-mdpcb-m2tpm-device-tree.patch \
+"
+
 BALENA_CONFIGS_DEPS[secureboot] += " \
     CONFIG_MODULE_SIG_FORMAT=y \
     CONFIG_PKCS7_MESSAGE_PARSER=y \
