@@ -2,12 +2,15 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/patches:${THISDIR}/imx8mp:"
 
 UBOOT_KCONFIG_SUPPORT = "1"
 inherit resin-u-boot
-DEPENDS = "bison-native gnutls-native"
+DEPENDS = "bison-native gnutls-native python3-setuptools-native"
 
 BALENA_DEVICE_FDT_ADDR_VAR ?= "fdt_addr_r"
 
+BALENA_STAGE2 = "balena_stage2"
+UBOOT_VARS += "BALENA_STAGE2"
+
 # Use the MACHINE specific inc file
-require ${MACHINE}.inc
+require compulab-imx8mp.inc
 
 # To use do_configure() provided by poky/meta/recipes-bsp/u-boot/u-boot-configure.inc
 # just make the merge_config.sh issue w/out the full path
