@@ -8,7 +8,7 @@ set -o errexit
 
 # machine specific data
 
-uboot_file_path=$(find /resin-boot/ -name "imx-boot-iotdin-imx8p*bin-flash_evk")
+uboot_file_path=$(find /resin-boot/ -name "imx-boot-iot*bin-flash_evk")
 uboot_file=$(basename ${uboot_file_path})
 uboot_block_size=1024
 
