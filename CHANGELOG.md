@@ -2,6 +2,37 @@
 
 # v6.0.5
 
+# v8.0.12
+## (2026-09-25)
+
+
+<details>
+<summary> Update layers/meta-balena to 42faaf80c787ecc9e680c413a285224261b42f23 [balena-renovate[bot]] </summary>
+
+> ## meta-balena-8.0.12
+> ### (2026-09-23)
+> 
+> * kernel-balena.bbclass: Add aufs patches for 6.18 kernels [Florin Sarbu]
+> 
+> ## meta-balena-8.0.11
+> ### (2026-09-22)
+> 
+> 
+> <details>
+> <summary> Update tests/leviathan digest to bac9173 [balena-renovate[bot]] </summary>
+> 
+>> ### leviathan-2.36.133
+>> #### (2026-09-22)
+>> 
+>> * core/contracts: Update to v2.0.150 [Alexandru Costache]
+>> 
+> 
+> </details>
+> 
+> 
+
+</details>
+
 # v8.0.10+rev1
 ## (2026-09-24)
 
