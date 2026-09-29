@@ -1,4 +1,19 @@
 - commits:
+    - subject: Update layers/meta-compulab-bsp to
+        2aa50e3897077bffe06a5e0f60a21f2bd6b9823a
+      hash: b13bed3cb607d993580af5e8ce74f6765412bebd
+      body: Update layers/meta-compulab-bsp
+      footer:
+        Changelog-entry: Update layers/meta-compulab-bsp to
+          2aa50e3897077bffe06a5e0f60a21f2bd6b9823a
+        changelog-entry: Update layers/meta-compulab-bsp to
+          2aa50e3897077bffe06a5e0f60a21f2bd6b9823a
+      author: balena-renovate[bot]
+      nested: []
+  version: 8.0.12+rev2
+  title: ""
+  date: 2026-09-29T16:07:01.106Z
+- commits:
     - subject: ".gitmodules: Point meta-arm to scarthgap branch"
       hash: 9b16bb00984d7b2ffa39905daaecab4b2df223a6
       body: ""
