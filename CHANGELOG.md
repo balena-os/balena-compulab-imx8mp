@@ -2,6 +2,11 @@
 
 # v6.0.5
 
+# v8.0.12+rev1
+## (2026-09-29)
+
+* .gitmodules: Point meta-arm to scarthgap branch [guille-vega]
+
 # v8.0.12
 ## (2026-09-25)
 

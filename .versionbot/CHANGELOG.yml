@@ -1,4 +1,18 @@
 - commits:
+    - subject: ".gitmodules: Point meta-arm to scarthgap branch"
+      hash: 9b16bb00984d7b2ffa39905daaecab4b2df223a6
+      body: ""
+      footer:
+        Changelog-entry: ".gitmodules: Point meta-arm to scarthgap branch"
+        changelog-entry: ".gitmodules: Point meta-arm to scarthgap branch"
+        Signed-off-by: guille-vega <guillermo.vega@balena.io>
+        signed-off-by: guille-vega <guillermo.vega@balena.io>
+      author: guille-vega
+      nested: []
+  version: 8.0.12+rev1
+  title: ""
+  date: 2026-09-29T07:35:52.266Z
+- commits:
     - subject: Update layers/meta-balena to 42faaf80c787ecc9e680c413a285224261b42f23
       hash: c09bc6b55d0e805d37c770509b41f4dff65039ef
       body: Update layers/meta-balena
