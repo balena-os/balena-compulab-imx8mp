@@ -1,4 +1,19 @@
 - commits:
+    - subject: Update layers/meta-openembedded to
+        0f00f8b9a21950640da8c5707343e5540133f86e
+      hash: d21d0b9af0881cce90e661e68abbe6333b0d6a54
+      body: Update layers/meta-openembedded
+      footer:
+        Changelog-entry: Update layers/meta-openembedded to
+          0f00f8b9a21950640da8c5707343e5540133f86e
+        changelog-entry: Update layers/meta-openembedded to
+          0f00f8b9a21950640da8c5707343e5540133f86e
+      author: balena-renovate[bot]
+      nested: []
+  version: 8.0.12+rev3
+  title: ""
+  date: 2026-10-01T06:27:35.990Z
+- commits:
     - subject: Update layers/meta-compulab-bsp to
         2aa50e3897077bffe06a5e0f60a21f2bd6b9823a
       hash: b13bed3cb607d993580af5e8ce74f6765412bebd
