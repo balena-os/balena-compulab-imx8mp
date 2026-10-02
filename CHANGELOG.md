@@ -2,6 +2,31 @@
 
 # v6.0.5
 
+# v8.0.12+rev4
+## (2026-10-02)
+
+
+<details>
+<summary> Update balena-yocto-scripts to f493532250022bcf723bddd055c3c8cb770ae649 [balena-renovate[bot]] </summary>
+
+> ## balena-yocto-scripts-1.42.16
+> ### (2026-10-02)
+> 
+> * Update ubuntu:22.04 Docker digest to b8b6ee6 [balena-renovate[bot]]
+> 
+> ## balena-yocto-scripts-1.42.15
+> ### (2026-09-15)
+> 
+> * Update actions/download-artifact action to v8 [balena-renovate[bot]]
+> 
+> ## balena-yocto-scripts-1.42.14
+> ### (2026-09-14)
+> 
+> * Fix ESR tagging step [Ryan Cooke]
+> 
+
+</details>
+
 # v8.0.12+rev3
 ## (2026-10-01)
 
