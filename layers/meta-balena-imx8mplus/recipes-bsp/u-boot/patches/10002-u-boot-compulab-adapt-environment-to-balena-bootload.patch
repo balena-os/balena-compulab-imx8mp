@@ -1,4 +1,4 @@
-From d2f73e0e9ae168d4491a3427206ee41aa2e4616a Mon Sep 17 00:00:00 2001
+From c51fa8eb1e2f23bc359bd604c5cd7e0789cfbda0 Mon Sep 17 00:00:00 2001
 From: Alexandru Costache <alexandru@balena.io>
 Date: Wed, 23 Sep 2026 11:45:23 +0000
 Subject: [PATCH] u-boot-compulab: adapt environment to balena bootloader
@@ -11,11 +11,11 @@ It also enables early console support.
 Upstream-status: Inappropriate [Configuration]
 Signed-off-by: Alex Gonzalez <alexg@balena.io>
 ---
- include/configs/compulab-imx8m-plus.h | 21 +++++++--------------
- 1 file changed, 7 insertions(+), 14 deletions(-)
+ include/configs/compulab-imx8m-plus.h | 22 ++++++++--------------
+ 1 file changed, 8 insertions(+), 14 deletions(-)
 
 diff --git a/include/configs/compulab-imx8m-plus.h b/include/configs/compulab-imx8m-plus.h
-index ae61b202aa6..ce196b69433 100644
+index ae61b202aa6..d82e480fbe0 100644
 --- a/include/configs/compulab-imx8m-plus.h
 +++ b/include/configs/compulab-imx8m-plus.h
 @@ -79,7 +79,7 @@
@@ -36,7 +36,7 @@ index ae61b202aa6..ce196b69433 100644
  		"root=/dev/nfs " \
  		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
  	"netboot=echo Booting from net ...; " \
-@@ -123,15 +123,15 @@
+@@ -123,15 +123,16 @@
  		"boot_part=1\0" \
  		"root_opt=rootwait ro fsck.mode=force fsck.repair=yes\0" \
  		"emmc_ul=setenv iface mmc; setenv dev ${resin_dev_index}; setenv part ${resin_root_part};" \
@@ -53,10 +53,11 @@ index ae61b202aa6..ce196b69433 100644
  				"source ${scriptaddr}\0" \
 -		"ulimage=if load ${iface} ${resin_dev_index}:${resin_root_part} ${zip_addr} boot/${image}; then unzip ${zip_addr} ${loadaddr}; run balena_kernel_load_crc_save; else false; fi; \0" \
 +		"ulimage=if load ${iface} ${dev}:${resin_boot_part} ${zip_addr} ${image}; then unzip ${zip_addr} ${loadaddr}; run balena_kernel_load_crc_save; else if load ${iface} ${dev}:${resin_root_part} ${zip_addr} boot/${image}; then unzip ${zip_addr} ${loadaddr}; run balena_kernel_load_crc_save; else false; fi; fi; \0" \
++		"test_load_custom_fdt=if test -n ${custom_fdt_file}; then if load ${iface} ${dev}:${resin_boot_part} ${fdt_addr_r} ${custom_fdt_file}; then true; else if load ${iface} ${dev}:${resin_root_part} ${fdt_addr_r} boot/${custom_fdt_file}; then true; else false; fi; fi; else false; fi; \0" \
  		"ulfdto=setenv fdto1file; for fdto1file in ${fdtofile}; do "\
  			    "echo loading ${fdto1file}; "\
  			    "load ${iface} ${dev}:${part} ${fdto_addr_r} ${fdto1file} "\
-@@ -139,14 +139,7 @@
+@@ -139,14 +140,7 @@
  			    "&& fdt resize 0x8000 "\
  			    "&& fdt apply ${fdto_addr_r};"\
  		"done; true;\0"\
@@ -68,7 +69,7 @@ index ae61b202aa6..ce196b69433 100644
 -					"true; "\
 -				"fi; "\
 -		"fi;\0" \
-+		"ulfdt=if load ${iface} ${dev}:${resin_boot_part} ${fdt_addr_r} ${fdtfile}; then run balena_fdt_load_crc_save; else if load ${iface} ${dev}:${resin_root_part} boot/${fdt_addr_r} ${fdtfile}; then run balena_fdt_load_crc_save; else false; fi; fi; \0" \
++		"ulfdt=if run test_load_custom_fdt; then setenv fdtfile ${custom_fdt_file}; fi; if load ${iface} ${dev}:${resin_boot_part} ${fdt_addr_r} ${fdtfile}; then run balena_fdt_load_crc_save; else if load ${iface} ${dev}:${resin_root_part} boot/${fdt_addr_r} ${fdtfile}; then run balena_fdt_load_crc_save; else false; fi; fi; \0" \
  		"bootlist=emmc_ul\0" \
  		"bsp_bootcmd=echo Running BSP bootcmd ...; " \
  		"for src in ${bootlist}; do " \
