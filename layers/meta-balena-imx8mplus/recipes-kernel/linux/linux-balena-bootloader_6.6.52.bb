@@ -81,6 +81,17 @@ do_deploy:append () {
     grub-editenv "${BOOTENV_FILE}" set "upgrade_available=0"
 }
 
+# Don't include the sdma driver in balena-bootloader at all,
+# instead let's defer it's loading to the kernel so that
+# the SDMA engine is not left in an inconistent state
+# after kexec.
+# This can be removed once https://github.com/balena-os/meta-balena/pull/3953
+# is merged and included in this repository
+BALENA_CONFIGS:append = " no-sdma"
+BALENA_CONFIGS[no-sdma] = " \
+    CONFIG_IMX_SDMA=n \
+"
+
 do_deploy[depends] += " grub-native:do_populate_sysroot"
 
 INITRAMFS_IMAGE = "balena-image-bootloader-initramfs"
