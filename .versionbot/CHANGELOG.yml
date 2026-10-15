@@ -1,4 +1,25 @@
 - commits:
+    - subject: "recipes-kernel/linux/linux-balena-bootloader: Remove SDMA driver from
+        balena-bootloader"
+      hash: 06694caf543e69fbec47730386582c049b286d4a
+      body: >
+        ... to let the kernel do the initial loading. This prevents the SDMA
+        engine
+
+        from being left in an inconsistent state after kexec.
+      footer:
+        Changelog-entry: "recipes-kernel/linux/linux-balena-bootloader: Remove SDMA
+          driver from balena-bootloader"
+        changelog-entry: "recipes-kernel/linux/linux-balena-bootloader: Remove SDMA
+          driver from balena-bootloader"
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 8.0.12+rev8
+  title: ""
+  date: 2026-10-15T10:43:37.787Z
+- commits:
     - subject: Update layers/meta-freescale to 114dda1a7639cac34e4e63c352e433d2d011a39c
       hash: 081af6d25432a7d77a276ecc4a278a28ec116cce
       body: Update layers/meta-freescale

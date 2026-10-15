@@ -2,6 +2,11 @@
 
 # v6.0.5
 
+# v8.0.12+rev8
+## (2026-10-15)
+
+* recipes-kernel/linux/linux-balena-bootloader: Remove SDMA driver from balena-bootloader [Alexandru Costache]
+
 # v8.0.12+rev7
 ## (2026-10-13)
 
