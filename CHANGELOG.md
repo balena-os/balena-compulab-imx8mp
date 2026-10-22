@@ -2,6 +2,21 @@
 
 # v6.0.5
 
+# v9.0.2+rev1
+## (2026-10-22)
+
+
+<details>
+<summary> Update balena-yocto-scripts to 436cae1eb39b15b2c74bac1450162eba0855eb0d [balena-renovate[bot]] </summary>
+
+> ## balena-yocto-scripts-1.42.17
+> ### (2026-10-13)
+> 
+> * hostapp-composition(overlays): extend schema to check for runtime [Alex Gonzalez]
+> 
+
+</details>
+
 # v9.0.2
 ## (2026-10-22)
 
