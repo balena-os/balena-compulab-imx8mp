@@ -4,6 +4,9 @@ inherit kernel-yocto kernel fsl-kernel-localversion balena-bootloader
 
 BALENA_DEFCONFIG_NAME = "iot-gate-imx8plus_defconfig"
 
+# The crypto_queue backlog fix is already in the Compulab kernel
+SRC_URI:remove = "file://crypto-engine-fix-crypto_queue-backlog-handling.patch"
+
 # Safely optimizes code density
 BALENA_CONFIGS:append = " core-optimization"
 BALENA_CONFIGS[core-optimization] = " \

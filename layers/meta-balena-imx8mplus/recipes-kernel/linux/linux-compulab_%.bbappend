@@ -6,6 +6,9 @@ DEPENDS += "rsync-native"
 
 SRC_URI:append = "file://balena.cfg"
 
+# The crypto_queue backlog fix is already in the Compulab kernel
+SRC_URI:remove = "file://crypto-engine-fix-crypto_queue-backlog-handling.patch"
+
 KERNEL_PACKAGE_NAME="kernel"
 
 SCMVERSION="n"
