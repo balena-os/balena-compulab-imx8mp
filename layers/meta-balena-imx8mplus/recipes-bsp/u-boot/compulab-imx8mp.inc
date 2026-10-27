@@ -9,3 +9,7 @@ SRC_URI:append:iot-gate-imx8plus = " \
 	file://10001-Enable-HDMI-output-by-default-add-clk_ignore_unused-.patch \
 	file://10002-u-boot-compulab-adapt-environment-to-balena-bootload.patch \
 "
+
+SRC_URI:append:iotdin-imx8p-d1d8 = " \
+	file://10003-iotdin-imx8mp-d1d8-Add-rollback-fixup.patch \
+"
