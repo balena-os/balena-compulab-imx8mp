@@ -1,6 +1,6 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/linux-compulab:"
 
-inherit kernel-resin kernel-balena
+inherit kernel-balena
 
 DEPENDS += "rsync-native"
 
