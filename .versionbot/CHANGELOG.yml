@@ -1,4 +1,38 @@
 - commits:
+    - subject: "recipes-bsp/u-boot: Add fixup for rollback altboot on iotdin-d1d8"
+      hash: 07976333b636175f4e64e1b909e2329e3027f106
+      body: |
+        A new device-tree has been added to the iotdin-d1d8 device-type
+        and it has been set as the default one by upstream. We thus need to
+        fallback to loading the previous device-tree during rollback-altboot
+        so the system can recover even if the new default dtb is not present.
+      footer:
+        Changelog-entry: "recipes-bsp/u-boot: Add fixup for rollback altboot on iotdin-d1d8"
+        changelog-entry: "recipes-bsp/u-boot: Add fixup for rollback altboot on iotdin-d1d8"
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+    - subject: "layers/meta-bsp-imx8mp: Update the layer revision"
+      hash: 185e1cf59156cb54010ba56dc98229d1d8cec5a6
+      body: |
+        Update the BSP layer from 130dabf to 30d8229.
+
+        Include Linux 6.18.20 and IoT Gate iMX8P v2 support, default the family
+        to Linux 6.6.52, and pin the kernel and U-Boot source revisions.
+        Adapt boot container support to Scarthgap and add the IoT DIN iMX8P
+        low-memory device tree and U-Boot configuration.
+      footer:
+        Changelog-entry: "layers/meta-bsp-imx8mp: Update the layer revision"
+        changelog-entry: "layers/meta-bsp-imx8mp: Update the layer revision"
+        Signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+        signed-off-by: Valentin Raevsky <valentin@compulab.co.il>
+      author: Valentin Raevsky
+      nested: []
+  version: 9.0.3+rev1
+  title: ""
+  date: 2026-10-29T08:26:09.097Z
+- commits:
     - subject: Update layers/meta-balena to 7f1a0e5c983a45cea4a4aad23c56134e3a3cea2f
       hash: dea2c88e0e5c2156df95423346522c91ba06299c
       body: Update layers/meta-balena

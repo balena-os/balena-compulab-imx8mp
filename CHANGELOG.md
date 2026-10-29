@@ -2,6 +2,12 @@
 
 # v6.0.5
 
+# v9.0.3+rev1
+## (2026-10-29)
+
+* recipes-bsp/u-boot: Add fixup for rollback altboot on iotdin-d1d8 [Alexandru Costache]
+* layers/meta-bsp-imx8mp: Update the layer revision [Valentin Raevsky]
+
 # v9.0.3
 ## (2026-10-23)
 
