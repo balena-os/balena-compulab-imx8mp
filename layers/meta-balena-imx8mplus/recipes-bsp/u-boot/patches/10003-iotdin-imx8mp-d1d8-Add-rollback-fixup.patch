@@ -1,0 +1,93 @@
+From 6bffd1da648757a51671a90e267d20792ad57f5b Mon Sep 17 00:00:00 2001
+From: Alexandru Costache <alexandru@balena.io>
+Date: Tue, 27 Oct 2026 10:37:24 +0000
+Subject: [PATCH] iotdin-imx8mp-d1d8: Add rollback fixup
+
+The device-tree name for the iotdin-d1d8 has
+changed in the last BSP. We thus need to fallback
+to the old device-tree name when booting from
+the previous rootfs - like in the case of a rollback
+altboot.
+
+Upstream-Status: Inappropriate [configuration]
+Singed-off-by: Alexandru Costache <alexandru@balena.io>
+---
+ include/configs/compulab-imx8m-plus.h | 62 ++++++++++++++++++++-------
+ 1 file changed, 47 insertions(+), 15 deletions(-)
+
+diff --git a/include/configs/compulab-imx8m-plus.h b/include/configs/compulab-imx8m-plus.h
+index abd33ef557e..f732da7608c 100644
+--- a/include/configs/compulab-imx8m-plus.h
++++ b/include/configs/compulab-imx8m-plus.h
+@@ -132,21 +132,53 @@
+ 		"ulrunbootscript=echo Running bootscript from ${iface} ${dev}:${part} ...; " \
+ 				"source ${scriptaddr}\0" \
+ 		"ulimage=if load ${iface} ${resin_dev_index}:${resin_root_part} ${zip_addr} boot/${image}; then unzip ${zip_addr} ${loadaddr}; run balena_kernel_load_crc_save; else false; fi; \0" \
+-		"ulfdto=setenv fdto1file; for fdto1file in ${fdtofile}; do "\
+-			    "echo loading ${fdto1file}; "\
+-			    "load ${iface} ${dev}:${part} ${fdto_addr_r} ${fdto1file} "\
+-			    "&& fdt addr ${fdt_addr_r} "\
+-			    "&& fdt resize 0x8000 "\
+-			    "&& fdt apply ${fdto_addr_r};"\
+-		"done; true;\0"\
+-		"ulfdt=if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+-			"load ${iface} ${resin_dev_index}:${resin_root_part} ${fdt_addr_r} boot/${fdtfile} && run balena_fdt_load_crc_save;" \
+-			"if env exists fdtofile;then "\
+-					"run ulfdto; "\
+-				"else "\
+-					"true; "\
+-				"fi; "\
+-		"fi;\0" \
++		"balena_fdt_try_load=" \
++			"if load ${iface} ${dev}:${resin_boot_part} ${fdt_addr_r} ${fdtfile}; then " \
++				"run balena_fdt_load_crc_save; " \
++			"else " \
++				"if load ${iface} ${dev}:${resin_root_part} ${fdt_addr_r} boot/${fdtfile}; then " \
++					"run balena_fdt_load_crc_save; " \
++				"else " \
++					"false; " \
++				"fi; " \
++			"fi;\0" \
++		"ulfdto=" \
++			"setenv fdto1file; setenv fdto_ok 1; " \
++			"for fdto1file in ${fdtofile}; do " \
++				"if test \"${fdto_ok}\" = 1; then " \
++					"echo Applying overlay ${fdto1file}; " \
++					"if load ${iface} ${dev}:${resin_boot_part} ${fdto_addr_r} ${fdto1file}; then " \
++						"fdt addr ${fdt_addr_r}; fdt resize 0x8000; " \
++						"if fdt apply ${fdto_addr_r}; then " \
++							"true; " \
++						"else " \
++							"echo Overlay ${fdto1file} failed, reloading base DTB without overlays; " \
++							"setenv fdto_ok 0; " \
++							"run balena_fdt_try_load; " \
++						"fi; " \
++					"else " \
++						"echo Could not load ${fdto1file}, skipping; " \
++					"fi; " \
++				"fi; " \
++			"done; true;\0" \
++		"ulfdt=" \
++			"if run test_load_custom_fdt; then " \
++				"setenv fdtfile ${custom_fdt_file}; " \
++			"fi; " \
++			"setenv fdt_ok 0; " \
++			"if run balena_fdt_try_load; then " \
++				"setenv fdt_ok 1; " \
++			"elif test \"${fdtfile}\" = \"iotdin-imx8p-lowmem.dtb\"; then " \
++				"echo Failed to load ${fdtfile}, falling back to iotdin-imx8p.dtb; " \
++				"setenv fdtfile iotdin-imx8p.dtb; " \
++				"if run balena_fdt_try_load; then setenv fdt_ok 1; fi; " \
++			"fi; " \
++			"if test \"${fdt_ok}\" = 1; then " \
++				"if env exists fdtofile; then run ulfdto; fi; " \
++				"true; " \
++			"else " \
++				"false; " \
++			"fi;\0" \
+ 		"bootlist=emmc_ul\0" \
+ 		"bsp_bootcmd=echo Running BSP bootcmd ...; " \
+ 		"for src in ${bootlist}; do " \
+-- 
+2.34.1
+

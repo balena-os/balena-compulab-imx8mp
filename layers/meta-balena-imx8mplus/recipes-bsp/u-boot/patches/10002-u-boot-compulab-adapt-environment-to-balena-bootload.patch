@@ -69,7 +69,7 @@ index ae61b202aa6..d82e480fbe0 100644
 -					"true; "\
 -				"fi; "\
 -		"fi;\0" \
-+		"ulfdt=if run test_load_custom_fdt; then setenv fdtfile ${custom_fdt_file}; fi; if load ${iface} ${dev}:${resin_boot_part} ${fdt_addr_r} ${fdtfile}; then run balena_fdt_load_crc_save; else if load ${iface} ${dev}:${resin_root_part} boot/${fdt_addr_r} ${fdtfile}; then run balena_fdt_load_crc_save; else false; fi; fi; \0" \
++		"ulfdt=if run test_load_custom_fdt; then setenv fdtfile ${custom_fdt_file}; fi; if load ${iface} ${dev}:${resin_boot_part} ${fdt_addr_r} ${fdtfile}; then run balena_fdt_load_crc_save; else if load ${iface} ${dev}:${resin_root_part} ${fdt_addr_r} boot/${fdtfile}; then run balena_fdt_load_crc_save; else false; fi; fi; \0" \
  		"bootlist=emmc_ul\0" \
  		"bsp_bootcmd=echo Running BSP bootcmd ...; " \
  		"for src in ${bootlist}; do " \
