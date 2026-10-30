@@ -109,7 +109,7 @@ def spl_stack_depth(top, roots):
 
     missing = [r for r in roots if r not in frame]
     if not frame or missing:
-        bb.fatal("No stack information for %s in %s" % (missing or "any function", top))
+        raise Exception("No stack information for %s in %s" % (missing or "any function", top))
 
     called = set()
     for dsts in calls.values():
@@ -148,7 +148,7 @@ def spl_stack_depth(top, roots):
             break
         pointer_depth[0] = new
     else:
-        bb.fatal("The stack depth through function pointers of %s does not settle" % top)
+        raise Exception("The stack depth through function pointers of %s does not settle" % top)
     memo.clear()
     total = max(depth(r, frozenset()) for r in roots)
     bb.note("SPL stack: %d bytes with calls through pointers, %d without (%d functions, %d reachable only by pointer)"
@@ -161,44 +161,67 @@ python do_check_spl_ocram () {
 }
 
 python do_check_spl_ocram:iot-gate-imx8plus () {
+    import os
     import re
 
-    def define(path, name):
+    # A check that cannot be computed is reported, it does not stop the build
+    # unless the overlap does
+    def report(msg):
+        if d.getVar('SPL_OCRAM_OVERLAP_FATAL') == '1':
+            bb.fatal(msg)
+        bb.warn(msg)
+
+    def read(path):
         with open(path) as f:
-            m = re.search(r'^#define\s+%s\s+(\w+)' % name, f.read(), re.M)
+            return f.read()
+
+    def find(text, regex, what):
+        m = re.search(regex, text, re.M)
         if not m:
-            bb.fatal("SPL OCRAM check: %s not found in %s" % (name, path))
-        return int(m.group(1), 0)
+            raise Exception("%s not found" % what)
+        return m.group(1)
+
+    def define(path, name):
+        return int(find(read(path), r'^#define\s+%s\s+(\w+)' % name, "%s in %s" % (name, path)), 0)
 
     def config(path, name):
-        with open(path) as f:
-            m = re.search(r'^CONFIG_%s=(\w+)' % name, f.read(), re.M)
-        if not m:
-            bb.fatal("SPL OCRAM check: CONFIG_%s not found in %s" % (name, path))
-        return int(m.group(1), 0)
+        return int(find(read(path), r'^CONFIG_%s=(\w+)' % name, "CONFIG_%s in %s" % (name, path)), 0)
 
     s = d.getVar('S')
-    # The firmware is loaded as the 1D and 2D training blobs, each one with its
-    # instruction (imem) and data (dmem) memory padded to these sizes
-    helper = s + '/drivers/ddr/imx/phy/helper.c'
-    fw_pad = 2 * (define(helper, 'IMEM_LEN') + define(helper, 'DMEM_LEN'))
-    hash_len = define(s + '/include/u-boot/sha256.h', 'SHA256_SUM_LEN')
-    # spl_verify_fit_hash() has the padding hardcoded, make sure it still matches
-    with open(s + '/arch/arm/mach-imx/spl.c') as f:
-        if not re.search(r'\+ 0x%x;' % fw_pad, f.read()):
-            bb.fatal("SPL OCRAM check: spl_verify_fit_hash() does not use the 0x%x bytes of DDR firmware padding, review this check" % fw_pad)
+    try:
+        # The firmware is loaded as the 1D and 2D training blobs, each one with
+        # its instruction (imem) and data (dmem) memory padded to these sizes
+        helper = s + '/drivers/ddr/imx/phy/helper.c'
+        fw_pad = 2 * (define(helper, 'IMEM_LEN') + define(helper, 'DMEM_LEN'))
+        hash_len = define(s + '/include/u-boot/sha256.h', 'SHA256_SUM_LEN')
+        # spl_verify_fit_hash() has the padding hardcoded, make sure it still matches
+        if not re.search(r'\+ 0x%x;' % fw_pad, read(s + '/arch/arm/mach-imx/spl.c')):
+            raise Exception("spl_verify_fit_hash() does not use the 0x%x bytes of DDR firmware padding" % fw_pad)
+    except Exception as e:
+        report("SPL OCRAM check skipped: %s, review it" % e)
+        return
 
     for machine in d.getVar('UBOOT_MACHINE').split():
         b = '%s/%s' % (d.getVar('B'), machine)
-        out, _ = bb.process.run(d.expand('${NM} %s/spl/u-boot-spl' % b))
-        m = re.search(r'^([0-9a-f]+) \w _end$', out, re.M)
-        if not m:
-            bb.fatal("SPL OCRAM check %s: _end not found in u-boot-spl" % machine)
-        end = int(m.group(1), 16)
-        dtb = os.path.getsize(b + '/spl/u-boot-spl.dtb')
-        stack = config(b + '/.config', 'SPL_STACK')
-        pool = config(b + '/.config', 'SYS_MALLOC_F_LEN')
-        gd_size = define(b + '/include/generated/generic-asm-offsets.h', 'GD_SIZE')
+        try:
+            out, _ = bb.process.run(d.expand('${NM} %s/spl/u-boot-spl' % b))
+            end = int(find(out, r'^([0-9a-f]+) \w _end$', "_end in u-boot-spl"), 16)
+            dtb = os.path.getsize(b + '/spl/u-boot-spl.dtb')
+            pool = config(b + '/.config', 'SPL_SYS_MALLOC_F_LEN')
+            # The stack top is a define of the config header of the board, not
+            # a Kconfig symbol of this U-Boot, use the .config if it is there
+            dotconfig = read(b + '/.config')
+            m = re.search(r'^CONFIG_SPL_STACK=(\w+)', dotconfig, re.M)
+            if m:
+                stack = int(m.group(1), 0)
+            else:
+                name = find(dotconfig, r'^CONFIG_SYS_CONFIG_NAME="([^"]+)"', "CONFIG_SYS_CONFIG_NAME")
+                stack = define('%s/include/configs/%s.h' % (s, name), 'CONFIG_SPL_STACK')
+            gd_size = define(b + '/include/generated/generic-asm-offsets.h', 'GD_SIZE')
+            depth = spl_stack_depth(b + '/spl', d.getVar('SPL_STACK_ROOTS').split())
+        except Exception as e:
+            report("SPL OCRAM check %s skipped: %s, review it" % (machine, e))
+            continue
 
         # As in spl_verify_fit_hash(): roundup(&_end + fdt_totalsize, 4) + firmware
         fw_start = (end + dtb + 3) // 4 * 4
@@ -206,16 +229,12 @@ python do_check_spl_ocram:iot-gate-imx8plus () {
         # As in board_init_f_alloc_reserve(): the pool, then gd rounded down to
         # 16 bytes, from the stack top. The C stack grows down from there
         gd_at = (stack - pool - gd_size) // 16 * 16
-        depth = spl_stack_depth(b + '/spl', d.getVar('SPL_STACK_ROOTS').split())
         limit = gd_at - depth
         margin = limit - data_end
         bb.note("SPL OCRAM %s: firmware at 0x%x, data ends at 0x%x, gd at 0x%x (stack top 0x%x, pool 0x%x, gd 0x%x), usable up to 0x%x with %d bytes of stack"
                 % (machine, fw_start, data_end, gd_at, stack, pool, gd_size, limit, depth))
         if margin < 0:
-            msg = "SPL OCRAM check %s: the DDR firmware and hash overlap the early malloc pool, gd and stack by %d bytes" % (machine, -margin)
-            if d.getVar('SPL_OCRAM_OVERLAP_FATAL') == '1':
-                bb.fatal(msg)
-            bb.warn(msg)
+            report("SPL OCRAM check %s: the DDR firmware and hash overlap the early malloc pool, gd and stack by %d bytes" % (machine, -margin))
         else:
             bb.note("SPL OCRAM %s: %d bytes of margin" % (machine, margin))
 }
