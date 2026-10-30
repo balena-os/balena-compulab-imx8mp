@@ -1,19 +1,38 @@
 From: guille-vega <guillermo.vega@balena.io>
-Subject: DEBUG: Trace the boot from the SPL to the console of U-Boot proper
+Subject: DEBUG: Trace the boot from the SPL to U-Boot proper
 
-Temporary, do not merge. U-Boot proper of the iot-gate-imx8plus does not print
-anything after BL31 and the board restarts. Find how far it gets:
+Temporary, do not merge. U-Boot proper of the iot-gate-imx8plus runs through
+init_sequence_f and then the board restarts, without any readable output of its
+console. Find where it stops and why it restarts:
 
-- the SPL prints what it hands to BL31: the entry points, the FDT and the
-  first words found at the entry point of U-Boot and at the FDT
 - the SPL prints the reset cause of the previous boot (SRC_SRSR) as soon as it
   has a console, and clears it, so each boot shows its own
+- the SPL prints where it jumps to and the first words found at U-Boot and at
+  the FDT
 - U-Boot proper writes a marker to UART2 between the steps of
-  init_sequence_f, as the console is not available until serial_init() and
-  console_init_f(), and when the sequence fails. UART2 is left set up by the SPL
+  init_sequence_f and, before it relocates, the values that crt0 uses for the
+  new stack and gd
+- everything that U-Boot proper asks its console to print is also written to
+  UART2 directly, and so is a system reset
 
 ---
 
+diff --git a/arch/arm/mach-imx/spl.c b/arch/arm/mach-imx/spl.c
+--- a/arch/arm/mach-imx/spl.c
++++ b/arch/arm/mach-imx/spl.c
+@@ -292,2 +292,12 @@
+ 
++	/* DEBUG ONLY, remove after the investigation: what is jumped to */
++	printf("DBG jump: entry 0x%lx load 0x%lx size 0x%lx fdt 0x%lx flags 0x%x\n",
++	       (ulong)spl_image->entry_point, (ulong)spl_image->load_addr,
++	       (ulong)spl_image->size, (ulong)spl_image->fdt_addr,
++	       spl_image->flags);
++	/* 0xedfe0dd0 read as a word is the magic of a valid FDT */
++	printf("DBG jump: words at U-Boot 0x%08x 0x%08x, at the FDT 0x%08x\n",
++	       *(u32 *)CONFIG_TEXT_BASE, *((u32 *)CONFIG_TEXT_BASE + 1),
++	       spl_image->fdt_addr ? *(u32 *)spl_image->fdt_addr : 0);
++
+ 	if (spl_image->flags & SPL_FIT_FOUND) {
 diff --git a/board/compulab/plat/imx8mp/spl/spl.c b/board/compulab/plat/imx8mp/spl/spl.c
 --- a/board/compulab/plat/imx8mp/spl/spl.c
 +++ b/board/compulab/plat/imx8mp/spl/spl.c
@@ -41,19 +60,26 @@ diff --git a/board/compulab/plat/imx8mp/spl/spl.c b/board/compulab/plat/imx8mp/s
 diff --git a/common/board_f.c b/common/board_f.c
 --- a/common/board_f.c
 +++ b/common/board_f.c
-@@ -833,3 +833,67 @@
+@@ -833,3 +833,106 @@
  
 +/*
-+ * DEBUG ONLY, remove after the investigation. Trace the init sequence writing
-+ * directly to UART2 of the iot-gate-imx8plus, which the SPL leaves set up, as
-+ * the console is not available until serial_init() and console_init_f()
++ * DEBUG ONLY, remove after the investigation. Trace the boot of U-Boot proper
++ * writing directly to UART2 of the iot-gate-imx8plus, which the SPL leaves set
++ * up. The console is not available until serial_init() and console_init_f(),
++ * and its output has not been readable since then
 + */
 +#define DBG_UART2_BASE		0x30890000
 +#define DBG_UART2_UTXD		(DBG_UART2_BASE + 0x40)
 +#define DBG_UART2_UTS		(DBG_UART2_BASE + 0xb4)
 +#define DBG_UART2_UTS_TXFULL	(1 << 4)
 +
-+static void dbg_putc(char c)
++void dbg_pb_putc(char c);
++void dbg_pb_puts(const char *s);
++void dbg_pb_hex(ulong v);
++void dbg_pb_console_putc(char c);
++void dbg_pb_console_puts(const char *s);
++
++void dbg_pb_putc(char c)
 +{
 +	unsigned int timeout = 100000;
 +
@@ -62,27 +88,41 @@ diff --git a/common/board_f.c b/common/board_f.c
 +	writel(c, DBG_UART2_UTXD);
 +}
 +
-+static void dbg_puts(const char *s)
++void dbg_pb_puts(const char *s)
 +{
 +	while (*s) {
 +		if (*s == '\n')
-+			dbg_putc('\r');
-+		dbg_putc(*s++);
++			dbg_pb_putc('\r');
++		dbg_pb_putc(*s++);
 +	}
 +}
 +
-+static void dbg_hex(ulong v)
++void dbg_pb_hex(ulong v)
 +{
 +	int i;
 +
-+	for (i = 28; i >= 0; i -= 4)
-+		dbg_putc("0123456789abcdef"[(v >> i) & 0xf]);
++	for (i = sizeof(ulong) * 8 - 4; i >= 0; i -= 4)
++		dbg_pb_putc("0123456789abcdef"[(v >> i) & 0xf]);
++}
++
++/* What the console is asked to print, to see it whatever its state is */
++void dbg_pb_console_putc(char c)
++{
++	if (c == '\n')
++		dbg_pb_putc('\r');
++	dbg_pb_putc(c);
++}
++
++void dbg_pb_console_puts(const char *s)
++{
++	while (*s)
++		dbg_pb_console_putc(*s++);
 +}
 +
 +#define DBG_MARK(name) \
 +static int dbg_mark_##name(void) \
 +{ \
-+	dbg_puts("PB:" #name "\n"); \
++	dbg_pb_puts("PB:" #name "\n"); \
 +	return 0; \
 +}
 +
@@ -93,77 +133,117 @@ diff --git a/common/board_f.c b/common/board_f.c
 +DBG_MARK(serial)
 +DBG_MARK(console)
 +DBG_MARK(dram)
-+DBG_MARK(reloc)
 +
 +/* 0xedfe0dd0 read as a word is the magic of a valid FDT */
 +static int dbg_mark_fdt(void)
 +{
-+	dbg_puts("PB:fdt blob 0x");
-+	dbg_hex((ulong)gd->fdt_blob);
-+	dbg_puts(" word 0x");
-+	dbg_hex(*(u32 *)gd->fdt_blob);
-+	dbg_puts("\n");
++	dbg_pb_puts("PB:fdt blob 0x");
++	dbg_pb_hex((ulong)gd->fdt_blob);
++	dbg_pb_puts(" word 0x");
++	dbg_pb_hex(*(u32 *)gd->fdt_blob);
++	dbg_pb_puts("\n");
++	return 0;
++}
++
++/* What crt0 uses next: the new stack and gd, and where it relocates to */
++static int dbg_mark_reloc(void)
++{
++	dbg_pb_puts("PB:reloc ram_size 0x");
++	dbg_pb_hex((ulong)gd->ram_size);
++	dbg_pb_puts(" ram_top 0x");
++	dbg_pb_hex((ulong)gd->ram_top);
++	dbg_pb_puts(" relocaddr 0x");
++	dbg_pb_hex(gd->relocaddr);
++	dbg_pb_puts(" start_addr_sp 0x");
++	dbg_pb_hex(gd->start_addr_sp);
++	dbg_pb_puts(" new_gd 0x");
++	dbg_pb_hex((ulong)gd->new_gd);
++	dbg_pb_puts(" reloc_off 0x");
++	dbg_pb_hex(gd->reloc_off);
++	dbg_pb_puts("\n");
 +	return 0;
 +}
 +
  static const init_fnc_t init_sequence_f[] = {
 +	dbg_mark_start,
  	setup_mon_len,
-@@ -838,2 +902,3 @@
+@@ -838,2 +941,3 @@
  #endif
 +	dbg_mark_fdt,
  #ifdef CONFIG_TRACE_EARLY
-@@ -857,3 +922,5 @@
+@@ -857,3 +961,5 @@
  	mach_cpu_init,		/* SoC/machine dependent CPU setup */
 +	dbg_mark_cpu,
  	initf_dm,
 +	dbg_mark_dm,
  #if defined(CONFIG_BOARD_EARLY_INIT_F)
-@@ -861,2 +928,3 @@
+@@ -861,2 +967,3 @@
  #endif
 +	dbg_mark_early,
  #if defined(CONFIG_PPC) || defined(CONFIG_SYS_FSL_CLK) || defined(CONFIG_M68K)
-@@ -876,3 +944,5 @@
+@@ -876,3 +983,5 @@
  #endif
 +	dbg_mark_serial,
  	console_init_f,		/* stage 1 init of console */
 +	dbg_mark_console,
  	display_options,	/* say that we are here */
-@@ -903,2 +973,3 @@
+@@ -903,2 +1012,3 @@
  	dram_init,		/* configure available RAM banks */
 +	dbg_mark_dram,
  #ifdef CONFIG_POST
-@@ -973,2 +1044,3 @@
+@@ -973,2 +1083,3 @@
  	cyclic_unregister_all,
 +	dbg_mark_reloc,
  #if !defined(CONFIG_ARM) && !defined(CONFIG_SANDBOX) && \
-@@ -985,4 +1057,6 @@
+@@ -985,4 +1096,6 @@
  
 -	if (initcall_run_list(init_sequence_f))
 +	if (initcall_run_list(init_sequence_f)) {
-+		dbg_puts("PB:init_sequence_f failed\n");
++		dbg_pb_puts("PB:init_sequence_f failed\n");
  		hang();
 +	}
  
-@@ -1024,2 +1098,3 @@
- {
-+	dbg_puts("PB:board_init_f_r\n");
- 	if (initcall_run_list(init_sequence_f_r))
-diff --git a/common/spl/spl_atf.c b/common/spl/spl_atf.c
---- a/common/spl/spl_atf.c
-+++ b/common/spl/spl_atf.c
-@@ -294,2 +294,14 @@
- 	 */
-+	/* DEBUG ONLY, remove after the investigation: what is handed to BL31 */
-+	printf("DBG atf: bl31 0x%lx bl32 0x%lx bl33 0x%lx fdt 0x%lx load 0x%lx size 0x%lx\n",
-+	       (ulong)spl_image->entry_point, (ulong)bl32_entry,
-+	       (ulong)bl33_entry, (ulong)platform_param,
-+	       (ulong)spl_image->load_addr, (ulong)spl_image->size);
-+	/* 0xedfe0dd0 read as a word is the magic of a valid FDT */
-+	printf("DBG atf: words at bl33 0x%08x 0x%08x, at fdt 0x%08x, after the image 0x%08x\n",
-+	       *(u32 *)bl33_entry, *((u32 *)bl33_entry + 1),
-+	       blob ? *(u32 *)blob : 0,
-+	       (spl_image->size && spl_image->size < 0x4000000) ?
-+	       *(u32 *)(bl33_entry + spl_image->size) : 0);
+diff --git a/common/console.c b/common/console.c
+--- a/common/console.c
++++ b/common/console.c
+@@ -687,2 +687,8 @@
+ 
++#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++/* DEBUG ONLY, remove after the investigation, see board_f.c */
++void dbg_pb_console_putc(char c);
++void dbg_pb_console_puts(const char *s);
++#endif
 +
- 	bl31_entry(spl_image->entry_point, bl32_entry,
+ void putc(const char c)
+@@ -692,2 +698,5 @@
+ 
++#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++	dbg_pb_console_putc(c);
++#endif
+ 	console_record_putc(c);
+@@ -733,2 +742,5 @@
+ 
++#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++	dbg_pb_console_puts(s);
++#endif
+ 	console_record_puts(s);
+diff --git a/drivers/sysreset/sysreset-uclass.c b/drivers/sysreset/sysreset-uclass.c
+--- a/drivers/sysreset/sysreset-uclass.c
++++ b/drivers/sysreset/sysreset-uclass.c
+@@ -94,2 +94,8 @@
+ 
++#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++/* DEBUG ONLY, remove after the investigation, see board_f.c */
++void dbg_pb_puts(const char *s);
++void dbg_pb_hex(ulong v);
++#endif
++
+ void sysreset_walk_halt(enum sysreset_t type)
+@@ -98,2 +104,7 @@
+ 
++#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++	dbg_pb_puts("PB:sysreset type 0x");
++	dbg_pb_hex(type);
++	dbg_pb_puts("\n");
++#endif
+ 	ret = sysreset_walk(type);
