@@ -2,18 +2,21 @@ From: guille-vega <guillermo.vega@balena.io>
 Subject: DEBUG: Trace the boot from the SPL to U-Boot proper
 
 Temporary, do not merge. U-Boot proper of the iot-gate-imx8plus runs through
-init_sequence_f and then the board restarts, without any readable output of its
-console. Find where it stops and why it restarts:
+init_sequence_f, asks for a system reset and the board restarts, without any
+readable output of its console. Find what asks for it:
 
 - the SPL prints the reset cause of the previous boot (SRC_SRSR) as soon as it
   has a console, and clears it, so each boot shows its own
 - the SPL prints where it jumps to and the first words found at U-Boot and at
   the FDT
-- U-Boot proper writes a marker to UART2 between the steps of
-  init_sequence_f and, before it relocates, the values that crt0 uses for the
-  new stack and gd
+- U-Boot proper writes a marker to UART2 between the steps of init_sequence_f
+  and init_sequence_r and, before it relocates, the values that crt0 uses for
+  the new stack and gd, and the state of the console and the version string
 - everything that U-Boot proper asks its console to print is also written to
-  UART2 directly, and so is a system reset
+  UART2 directly
+- panic() and a system reset write to UART2 their message, and the words of
+  the stack that point into U-Boot, as link addresses, to be looked up in the
+  symbols that the build prints in the log of do_compile
 
 ---
 
@@ -60,7 +63,11 @@ diff --git a/board/compulab/plat/imx8mp/spl/spl.c b/board/compulab/plat/imx8mp/s
 diff --git a/common/board_f.c b/common/board_f.c
 --- a/common/board_f.c
 +++ b/common/board_f.c
-@@ -833,3 +833,106 @@
+@@ -29,2 +29,3 @@
+ #include <init.h>
++#include <version.h>
+ #include <initcall.h>
+@@ -833,3 +834,144 @@
  
 +/*
 + * DEBUG ONLY, remove after the investigation. Trace the boot of U-Boot proper
@@ -78,6 +85,7 @@ diff --git a/common/board_f.c b/common/board_f.c
 +void dbg_pb_hex(ulong v);
 +void dbg_pb_console_putc(char c);
 +void dbg_pb_console_puts(const char *s);
++void dbg_pb_backtrace(void);
 +
 +void dbg_pb_putc(char c)
 +{
@@ -119,6 +127,31 @@ diff --git a/common/board_f.c b/common/board_f.c
 +		dbg_pb_console_putc(*s++);
 +}
 +
++/*
++ * The words on the stack that point into the text of U-Boot, as link addresses
++ * (the relocation offset removed) to be looked up in the symbols. They are the
++ * return addresses of the callers, in no guaranteed order, and some may be
++ * stale values left on the stack
++ */
++void dbg_pb_backtrace(void)
++{
++	ulong *sp = (ulong *)__builtin_frame_address(0);
++	ulong off = (gd->flags & GD_FLG_RELOC) ? gd->reloc_off : 0;
++	ulong lo = 0x40200000 + off;
++	ulong hi = lo + 0x140000;
++	int i, n = 0;
++
++	dbg_pb_puts("PB:bt");
++	for (i = 0; i < 256 && n < 24; i++) {
++		if (sp[i] >= lo && sp[i] < hi) {
++			dbg_pb_puts(" 0x");
++			dbg_pb_hex(sp[i] - off);
++			n++;
++		}
++	}
++	dbg_pb_puts("\n");
++}
++
 +#define DBG_MARK(name) \
 +static int dbg_mark_##name(void) \
 +{ \
@@ -131,8 +164,20 @@ diff --git a/common/board_f.c b/common/board_f.c
 +DBG_MARK(dm)
 +DBG_MARK(early)
 +DBG_MARK(serial)
-+DBG_MARK(console)
 +DBG_MARK(dram)
++
++/* The state of the console, and whether the version string reads well */
++static int dbg_mark_console(void)
++{
++	dbg_pb_puts("PB:console flags 0x");
++	dbg_pb_hex(gd->flags);
++	dbg_pb_puts(" have_console 0x");
++	dbg_pb_hex((ulong)gd->have_console);
++	dbg_pb_puts(" version [");
++	dbg_pb_puts(version_string);
++	dbg_pb_puts("]\n");
++	return 0;
++}
 +
 +/* 0xedfe0dd0 read as a word is the magic of a valid FDT */
 +static int dbg_mark_fdt(void)
@@ -167,35 +212,35 @@ diff --git a/common/board_f.c b/common/board_f.c
  static const init_fnc_t init_sequence_f[] = {
 +	dbg_mark_start,
  	setup_mon_len,
-@@ -838,2 +941,3 @@
+@@ -838,2 +980,3 @@
  #endif
 +	dbg_mark_fdt,
  #ifdef CONFIG_TRACE_EARLY
-@@ -857,3 +961,5 @@
+@@ -857,3 +1000,5 @@
  	mach_cpu_init,		/* SoC/machine dependent CPU setup */
 +	dbg_mark_cpu,
  	initf_dm,
 +	dbg_mark_dm,
  #if defined(CONFIG_BOARD_EARLY_INIT_F)
-@@ -861,2 +967,3 @@
+@@ -861,2 +1006,3 @@
  #endif
 +	dbg_mark_early,
  #if defined(CONFIG_PPC) || defined(CONFIG_SYS_FSL_CLK) || defined(CONFIG_M68K)
-@@ -876,3 +983,5 @@
+@@ -876,3 +1022,5 @@
  #endif
 +	dbg_mark_serial,
  	console_init_f,		/* stage 1 init of console */
 +	dbg_mark_console,
  	display_options,	/* say that we are here */
-@@ -903,2 +1012,3 @@
+@@ -903,2 +1051,3 @@
  	dram_init,		/* configure available RAM banks */
 +	dbg_mark_dram,
  #ifdef CONFIG_POST
-@@ -973,2 +1083,3 @@
+@@ -973,2 +1122,3 @@
  	cyclic_unregister_all,
 +	dbg_mark_reloc,
  #if !defined(CONFIG_ARM) && !defined(CONFIG_SANDBOX) && \
-@@ -985,4 +1096,6 @@
+@@ -985,4 +1135,6 @@
  
 -	if (initcall_run_list(init_sequence_f))
 +	if (initcall_run_list(init_sequence_f)) {
@@ -203,6 +248,69 @@ diff --git a/common/board_f.c b/common/board_f.c
  		hang();
 +	}
  
+diff --git a/common/board_r.c b/common/board_r.c
+--- a/common/board_r.c
++++ b/common/board_r.c
+@@ -639,3 +639,27 @@
+  */
++/*
++ * DEBUG ONLY, remove after the investigation. Markers of the steps after the
++ * relocation, written directly to UART2, see board_f.c
++ */
++void dbg_pb_puts(const char *s);
++
++#define DBG_MARK_R(name) \
++static int dbg_mark_r_##name(void) \
++{ \
++	dbg_pb_puts("PB:r:" #name "\n"); \
++	return 0; \
++}
++
++DBG_MARK_R(start)
++DBG_MARK_R(dm)
++DBG_MARK_R(board)
++DBG_MARK_R(serial)
++DBG_MARK_R(mmc)
++DBG_MARK_R(env)
++DBG_MARK_R(console)
++DBG_MARK_R(late)
++DBG_MARK_R(main)
++
+ static init_fnc_t init_sequence_r[] = {
++	dbg_mark_r_start,
+ 	initr_trace,
+@@ -674,2 +698,3 @@
+ #endif
++	dbg_mark_r_dm,
+ #ifdef CONFIG_ADDR_MAP
+@@ -680,2 +705,3 @@
+ #endif
++	dbg_mark_r_board,
+ 	/*
+@@ -699,2 +725,3 @@
+ 	serial_initialize,
++	dbg_mark_r_serial,
+ 	initr_announce,
+@@ -751,2 +778,3 @@
+ #endif
++	dbg_mark_r_mmc,
+ #ifdef CONFIG_XEN
+@@ -758,2 +786,3 @@
+ 	initr_env,
++	dbg_mark_r_env,
+ #ifdef CONFIG_SYS_MALLOC_BOOTPARAMS
+@@ -779,2 +808,3 @@
+ 	console_init_r,		/* fully init console as a device */
++	dbg_mark_r_console,
+ #ifdef CONFIG_DISPLAY_BOARDINFO_LATE
+@@ -804,2 +834,3 @@
+ #endif
++	dbg_mark_r_late,
+ #ifdef CONFIG_FSL_FASTBOOT
+@@ -851,2 +882,3 @@
+ #endif
++	dbg_mark_r_main,
+ 	run_main_loop,
 diff --git a/common/console.c b/common/console.c
 --- a/common/console.c
 +++ b/common/console.c
@@ -230,20 +338,52 @@ diff --git a/common/console.c b/common/console.c
 diff --git a/drivers/sysreset/sysreset-uclass.c b/drivers/sysreset/sysreset-uclass.c
 --- a/drivers/sysreset/sysreset-uclass.c
 +++ b/drivers/sysreset/sysreset-uclass.c
-@@ -94,2 +94,8 @@
+@@ -94,2 +94,9 @@
  
 +#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
 +/* DEBUG ONLY, remove after the investigation, see board_f.c */
 +void dbg_pb_puts(const char *s);
 +void dbg_pb_hex(ulong v);
++void dbg_pb_backtrace(void);
 +#endif
 +
  void sysreset_walk_halt(enum sysreset_t type)
-@@ -98,2 +104,7 @@
+@@ -98,2 +105,8 @@
  
 +#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
 +	dbg_pb_puts("PB:sysreset type 0x");
 +	dbg_pb_hex(type);
 +	dbg_pb_puts("\n");
++	dbg_pb_backtrace();
 +#endif
  	ret = sysreset_walk(type);
+diff --git a/lib/panic.c b/lib/panic.c
+--- a/lib/panic.c
++++ b/lib/panic.c
+@@ -19,2 +19,8 @@
+ 
++#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++/* DEBUG ONLY, remove after the investigation, see board_f.c */
++void dbg_pb_puts(const char *s);
++void dbg_pb_backtrace(void);
++#endif
++
+ static void panic_finish(void) __attribute__ ((noreturn));
+@@ -37,2 +43,8 @@
+ {
++#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++	dbg_pb_puts("PB:panic_str [");
++	dbg_pb_puts(str);
++	dbg_pb_puts("]\n");
++	dbg_pb_backtrace();
++#endif
+ 	puts(str);
+@@ -43,2 +55,8 @@
+ {
++#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TPL_BUILD)
++	dbg_pb_puts("PB:panic fmt [");
++	dbg_pb_puts(fmt);
++	dbg_pb_puts("]\n");
++	dbg_pb_backtrace();
++#endif
+ #if CONFIG_IS_ENABLED(PRINTF)

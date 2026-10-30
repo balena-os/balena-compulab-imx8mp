@@ -69,6 +69,17 @@ do_compile:prepend:iot-gate-imx8plus () {
     export KCFLAGS="${KCFLAGS} -fcallgraph-info=su"
 }
 
+# DEBUG ONLY, remove with 20098. Print the symbols of U-Boot proper and of the SPL
+# in the log, to look up the addresses that 20098 writes to the UART
+do_compile:append:iot-gate-imx8plus () {
+    for config in ${UBOOT_MACHINE}; do
+        echo "DBG SYMBOLS u-boot ${config}"
+        ${NM} -n ${B}/${config}/u-boot | sed 's/^/SYM /'
+        echo "DBG SYMBOLS u-boot-spl ${config}"
+        ${NM} -n ${B}/${config}/spl/u-boot-spl | sed 's/^/SYM /'
+    done
+}
+
 # Worst case stack depth in bytes of the call chains that start at the roots,
 # from the .ci files below top. Calls through a function pointer may reach any
 # function that nothing calls directly, which is where such pointers come from,
