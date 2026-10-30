@@ -18,6 +18,11 @@ do_configure:prepend () {
     export PATH=${PATH}:${S}/scripts/kconfig/
 }
 
+# DEBUG ONLY, see debug-uart.cfg
+do_configure:prepend:iot-gate-imx8plus () {
+    cat ${WORKDIR}/debug-uart.cfg >> ${S}/configs/${MACHINE}_defconfig
+}
+
 do_unpack[nostamp]="1"
 do_patch[nostamp]="1"
 do_configure[nostamp] = "1"
