@@ -1,0 +1,169 @@
+From: guille-vega <guillermo.vega@balena.io>
+Subject: DEBUG: Trace the boot from the SPL to the console of U-Boot proper
+
+Temporary, do not merge. U-Boot proper of the iot-gate-imx8plus does not print
+anything after BL31 and the board restarts. Find how far it gets:
+
+- the SPL prints what it hands to BL31: the entry points, the FDT and the
+  first words found at the entry point of U-Boot and at the FDT
+- the SPL prints the reset cause of the previous boot (SRC_SRSR) as soon as it
+  has a console, and clears it, so each boot shows its own
+- U-Boot proper writes a marker to UART2 between the steps of
+  init_sequence_f, as the console is not available until serial_init() and
+  console_init_f(), and when the sequence fails. UART2 is left set up by the SPL
+
+---
+
+diff --git a/board/compulab/plat/imx8mp/spl/spl.c b/board/compulab/plat/imx8mp/spl/spl.c
+--- a/board/compulab/plat/imx8mp/spl/spl.c
++++ b/board/compulab/plat/imx8mp/spl/spl.c
+@@ -20,2 +20,3 @@
+ #include <asm/arch/imx8mp_pins.h>
++#include <asm/arch/imx-regs.h>
+ #include <asm/arch/sys_proto.h>
+@@ -310,2 +311,16 @@
+ 
++	{
++		/*
++		 * DEBUG ONLY, remove after the investigation: why the board
++		 * restarted, 0x1 power on, 0x8 IPP USER, 0x10 WDOG, 0x40 JTAG
++		 * SW, 0x80 WDOG3, 0x100 WDOG2. Clear it so that the next boot
++		 * shows only its own
++		 */
++		struct src *dbg_src = (struct src *)SRC_BASE_ADDR;
++		u32 dbg_srsr = readl(&dbg_src->srsr);
++
++		printf("DBG reset cause SRSR 0x%x\n", dbg_srsr);
++		writel(dbg_srsr, &dbg_src->srsr);
++	}
++
+ 	enable_tzc380();
+diff --git a/common/board_f.c b/common/board_f.c
+--- a/common/board_f.c
++++ b/common/board_f.c
+@@ -833,3 +833,67 @@
+ 
++/*
++ * DEBUG ONLY, remove after the investigation. Trace the init sequence writing
++ * directly to UART2 of the iot-gate-imx8plus, which the SPL leaves set up, as
++ * the console is not available until serial_init() and console_init_f()
++ */
++#define DBG_UART2_BASE		0x30890000
++#define DBG_UART2_UTXD		(DBG_UART2_BASE + 0x40)
++#define DBG_UART2_UTS		(DBG_UART2_BASE + 0xb4)
++#define DBG_UART2_UTS_TXFULL	(1 << 4)
++
++static void dbg_putc(char c)
++{
++	unsigned int timeout = 100000;
++
++	while ((readl(DBG_UART2_UTS) & DBG_UART2_UTS_TXFULL) && --timeout)
++		;
++	writel(c, DBG_UART2_UTXD);
++}
++
++static void dbg_puts(const char *s)
++{
++	while (*s) {
++		if (*s == '\n')
++			dbg_putc('\r');
++		dbg_putc(*s++);
++	}
++}
++
++static void dbg_hex(ulong v)
++{
++	int i;
++
++	for (i = 28; i >= 0; i -= 4)
++		dbg_putc("0123456789abcdef"[(v >> i) & 0xf]);
++}
++
++#define DBG_MARK(name) \
++static int dbg_mark_##name(void) \
++{ \
++	dbg_puts("PB:" #name "\n"); \
++	return 0; \
++}
++
++DBG_MARK(start)
++DBG_MARK(cpu)
++DBG_MARK(dm)
++DBG_MARK(early)
++DBG_MARK(serial)
++DBG_MARK(console)
++DBG_MARK(dram)
++DBG_MARK(reloc)
++
++/* 0xedfe0dd0 read as a word is the magic of a valid FDT */
++static int dbg_mark_fdt(void)
++{
++	dbg_puts("PB:fdt blob 0x");
++	dbg_hex((ulong)gd->fdt_blob);
++	dbg_puts(" word 0x");
++	dbg_hex(*(u32 *)gd->fdt_blob);
++	dbg_puts("\n");
++	return 0;
++}
++
+ static const init_fnc_t init_sequence_f[] = {
++	dbg_mark_start,
+ 	setup_mon_len,
+@@ -838,2 +902,3 @@
+ #endif
++	dbg_mark_fdt,
+ #ifdef CONFIG_TRACE_EARLY
+@@ -857,3 +922,5 @@
+ 	mach_cpu_init,		/* SoC/machine dependent CPU setup */
++	dbg_mark_cpu,
+ 	initf_dm,
++	dbg_mark_dm,
+ #if defined(CONFIG_BOARD_EARLY_INIT_F)
+@@ -861,2 +928,3 @@
+ #endif
++	dbg_mark_early,
+ #if defined(CONFIG_PPC) || defined(CONFIG_SYS_FSL_CLK) || defined(CONFIG_M68K)
+@@ -876,3 +944,5 @@
+ #endif
++	dbg_mark_serial,
+ 	console_init_f,		/* stage 1 init of console */
++	dbg_mark_console,
+ 	display_options,	/* say that we are here */
+@@ -903,2 +973,3 @@
+ 	dram_init,		/* configure available RAM banks */
++	dbg_mark_dram,
+ #ifdef CONFIG_POST
+@@ -973,2 +1044,3 @@
+ 	cyclic_unregister_all,
++	dbg_mark_reloc,
+ #if !defined(CONFIG_ARM) && !defined(CONFIG_SANDBOX) && \
+@@ -985,4 +1057,6 @@
+ 
+-	if (initcall_run_list(init_sequence_f))
++	if (initcall_run_list(init_sequence_f)) {
++		dbg_puts("PB:init_sequence_f failed\n");
+ 		hang();
++	}
+ 
+@@ -1024,2 +1098,3 @@
+ {
++	dbg_puts("PB:board_init_f_r\n");
+ 	if (initcall_run_list(init_sequence_f_r))
+diff --git a/common/spl/spl_atf.c b/common/spl/spl_atf.c
+--- a/common/spl/spl_atf.c
++++ b/common/spl/spl_atf.c
+@@ -294,2 +294,14 @@
+ 	 */
++	/* DEBUG ONLY, remove after the investigation: what is handed to BL31 */
++	printf("DBG atf: bl31 0x%lx bl32 0x%lx bl33 0x%lx fdt 0x%lx load 0x%lx size 0x%lx\n",
++	       (ulong)spl_image->entry_point, (ulong)bl32_entry,
++	       (ulong)bl33_entry, (ulong)platform_param,
++	       (ulong)spl_image->load_addr, (ulong)spl_image->size);
++	/* 0xedfe0dd0 read as a word is the magic of a valid FDT */
++	printf("DBG atf: words at bl33 0x%08x 0x%08x, at fdt 0x%08x, after the image 0x%08x\n",
++	       *(u32 *)bl33_entry, *((u32 *)bl33_entry + 1),
++	       blob ? *(u32 *)blob : 0,
++	       (spl_image->size && spl_image->size < 0x4000000) ?
++	       *(u32 *)(bl33_entry + spl_image->size) : 0);
++
+ 	bl31_entry(spl_image->entry_point, bl32_entry,
