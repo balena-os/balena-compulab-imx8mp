@@ -11,7 +11,6 @@ SRC_URI:append:iot-gate-imx8plus = " \
 	file://10001-Enable-HDMI-output-by-default-add-clk_ignore_unused-.patch \
 	file://10002-u-boot-compulab-adapt-environment-to-balena-bootload.patch \
 	file://20099-DEBUG-spl-print-ocram-use.patch \
-	file://debug-uart.cfg \
 "
 
 SRC_URI:append:iotdin-imx8p-d1d8 = " \
