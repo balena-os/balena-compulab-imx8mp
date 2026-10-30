@@ -1,0 +1,98 @@
+From: guille-vega <guillermo.vega@balena.io>
+Subject: DEBUG: Print the OCRAM use of the SPL
+
+Temporary, do not merge. Print where the OCRAM is used by the SPL, to find
+what overwrites the DDR firmware and the data stored after it:
+
+- the early malloc pool use, the frame address as a stack position, the
+  address of gd and _end, and the 32 bytes found at the old FIT hash
+  location, when the DDR firmware is loaded and the FIT is processed
+- the additive checksum of each DDR firmware blob as the SPL sees it
+- the FIT hash and the one computed, when the hash is still used
+
+---
+ arch/arm/mach-imx/spl.c | 37 +++++++++++++++++++++++++++++++++++++
+ drivers/ddr/imx/phy/helper.c | 20 ++++++++++++++++++++
+ 2 files changed, 57 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/mach-imx/spl.c b/arch/arm/mach-imx/spl.c
+--- a/arch/arm/mach-imx/spl.c
++++ b/arch/arm/mach-imx/spl.c
+@@ -28,2 +28,24 @@
+ 
++/* DEBUG ONLY, remove after the investigation: where the OCRAM is used */
++void dbg_spl_mem(const char *where)
++{
++	ulong hash_at = 0;
++	u8 *p;
++	int i;
++
++	if (gd->fdt_blob && !fdt_check_header(gd->fdt_blob))
++		hash_at = roundup((unsigned long)&_end + fdt_totalsize(gd->fdt_blob), 4) + 0x18000;
++
++	printf("DBG mem[%s]: frame=0x%lx gd=%p _end=%p malloc_base=0x%lx used=%lu size=%lu\n",
++	       where, (ulong)__builtin_frame_address(0), gd, &_end,
++	       gd->malloc_base, gd->malloc_ptr, gd->malloc_limit);
++	if (hash_at) {
++		p = (u8 *)hash_at;
++		printf("DBG mem[%s]: bytes at the hash location 0x%lx:", where, hash_at);
++		for (i = 0; i < 32; i++)
++			printf("%02x", p[i]);
++		printf("\n");
++	}
++}
++
+ DECLARE_GLOBAL_DATA_PTR;
+@@ -380,2 +402,15 @@
+ 
++	{
++		/* DEBUG ONLY */
++		int dbg_i;
++
++		printf("DBG hash: fit=%p size=%lu fit_hash=0x%lx computed:", fit, size, fit_hash);
++		for (dbg_i = 0; dbg_i < value_len; dbg_i++)
++			printf("%02x", value[dbg_i]);
++		printf(" stored:");
++		for (dbg_i = 0; dbg_i < SHA256_SUM_LEN; dbg_i++)
++			printf("%02x", ((u8 *)fit_hash)[dbg_i]);
++		printf("\n");
++	}
++
+ 	if (value_len != SHA256_SUM_LEN) {
+@@ -405,2 +440,3 @@
+ 
++	dbg_spl_mem("fit_fix_load");
+ 	if (IS_ENABLED(CONFIG_IMX_HAB)) {
+@@ -531,2 +567,3 @@
+ {
++	dbg_spl_mem("fit_post_load");
+ 
+diff --git a/drivers/ddr/imx/phy/helper.c b/drivers/ddr/imx/phy/helper.c
+--- a/drivers/ddr/imx/phy/helper.c
++++ b/drivers/ddr/imx/phy/helper.c
+@@ -41,2 +41,5 @@
+ 
++/* DEBUG ONLY */
++extern void dbg_spl_mem(const char *where);
++
+ /* We need PHY iMEM PHY is 32KB padded */
+@@ -62,2 +65,19 @@
+ 
++	{
++		/* DEBUG ONLY: the firmware as the SPL sees it, additive sum of its 32 bit words */
++		u32 dbg_isum = 0, dbg_dsum = 0;
++		ulong dbg_a;
++
++		for (dbg_a = imem_start; dbg_a < imem_start + imem_len; dbg_a += 4)
++			dbg_isum += readl(dbg_a);
++		for (dbg_a = dmem_start; dbg_a < dmem_start + dmem_len; dbg_a += 4)
++			dbg_dsum += readl(dbg_a);
++		printf("DBG ddr fw type=%d: _end=%p fdt_total=%u binman_syms_ok=%d imem=0x%lx len=0x%lx sum=0x%08x dmem=0x%lx len=0x%lx sum=0x%08x\n",
++		       (int)type, &_end,
++		       gd->fdt_blob ? (unsigned int)fdt_totalsize(gd->fdt_blob) : 0,
++		       (int)BINMAN_SYMS_OK, imem_start, imem_len, dbg_isum,
++		       dmem_start, dmem_len, dbg_dsum);
++		dbg_spl_mem("ddr_load_fw");
++	}
++
+ 	if (BINMAN_SYMS_OK) {
