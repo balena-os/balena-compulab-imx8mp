@@ -63,13 +63,11 @@ diff --git a/board/compulab/plat/imx8mp/spl/spl.c b/board/compulab/plat/imx8mp/s
 diff --git a/common/board_f.c b/common/board_f.c
 --- a/common/board_f.c
 +++ b/common/board_f.c
-@@ -28,3 +28,5 @@
- #include <i2c.h>
-+#include <cpu_func.h>
+@@ -29,2 +29,3 @@
  #include <init.h>
-+#include <version.h>
++#include <version_string.h>
  #include <initcall.h>
-@@ -833,3 +835,174 @@
+@@ -833,3 +834,174 @@
  
 +/*
 + * DEBUG ONLY, remove after the investigation. Trace the boot of U-Boot proper
@@ -244,35 +242,35 @@ diff --git a/common/board_f.c b/common/board_f.c
  static const init_fnc_t init_sequence_f[] = {
 +	dbg_mark_start,
  	setup_mon_len,
-@@ -838,2 +1011,3 @@
+@@ -838,2 +1010,3 @@
  #endif
 +	dbg_mark_fdt,
  #ifdef CONFIG_TRACE_EARLY
-@@ -857,3 +1031,5 @@
+@@ -857,3 +1030,5 @@
  	mach_cpu_init,		/* SoC/machine dependent CPU setup */
 +	dbg_mark_cpu,
  	initf_dm,
 +	dbg_mark_dm,
  #if defined(CONFIG_BOARD_EARLY_INIT_F)
-@@ -861,2 +1037,3 @@
+@@ -861,2 +1036,3 @@
  #endif
 +	dbg_mark_early,
  #if defined(CONFIG_PPC) || defined(CONFIG_SYS_FSL_CLK) || defined(CONFIG_M68K)
-@@ -876,3 +1053,5 @@
+@@ -876,3 +1052,5 @@
  #endif
 +	dbg_mark_serial,
  	console_init_f,		/* stage 1 init of console */
 +	dbg_mark_console,
  	display_options,	/* say that we are here */
-@@ -903,2 +1082,3 @@
+@@ -903,2 +1081,3 @@
  	dram_init,		/* configure available RAM banks */
 +	dbg_mark_dram,
  #ifdef CONFIG_POST
-@@ -973,2 +1153,3 @@
+@@ -973,2 +1152,3 @@
  	cyclic_unregister_all,
 +	dbg_mark_reloc,
  #if !defined(CONFIG_ARM) && !defined(CONFIG_SANDBOX) && \
-@@ -985,4 +1166,6 @@
+@@ -985,4 +1165,6 @@
  
 -	if (initcall_run_list(init_sequence_f))
 +	if (initcall_run_list(init_sequence_f)) {
