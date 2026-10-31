@@ -1,7 +1,7 @@
 IMAGE_FSTYPES:append = " balenaos-img"
 
 BALENA_BOOT_PARTITION_FILES:append = " \
-    imx-boot_${MACHINE}_${DRAM_CONF}:/imx-boot-${MACHINE}-sd.bin-flash_evk \
+    imx-boot-${MACHINE}-sd.bin-flash_evk:/imx-boot-${MACHINE}-sd.bin-flash_evk \
 "
 
 KERNEL_DEVICE_TREES = "${@' '.join(map(str, [os.path.join('balena-bootloader', os.path.basename(dt) + ':/' + os.path.basename(dt)) for dt in d.getVar('KERNEL_DEVICETREE').split()]))}"
@@ -15,10 +15,12 @@ BALENA_BOOT_PARTITION_FILES:append:iot-gate-imx8plus = " \
 BALENA_BOOTLOADER_DEPLOY_DEPENDENCY = ""
 BALENA_BOOTLOADER_DEPLOY_DEPENDENCY:iot-gate-imx8plus = "virtual/balena-bootloader:do_deploy"
 
+do_resin_boot_dirgen_and_deploy[depends] += "imx-boot:do_deploy"
 do_rootfs[depends] += " ${BALENA_BOOTLOADER_DEPLOY_DEPENDENCY}"
 do_image_balenaos_img[depends] += " ${BALENA_BOOTLOADER_DEPLOY_DEPENDENCY}"
 
 IMAGE_INSTALL:append = " \
+    imx-boot \
     u-boot-compulab \
     linux-firmware-ax200 \
     linux-firmware-ax210 \
