@@ -71,3 +71,6 @@ FSL_EULA_FILE_MD5SUM = "bc649096ad3928ec06a8713b8d787eac"
 
 # CycloneDX SBOM and VEX generation
 INHERIT += "cyclonedx-export"
+
+# TEST: build everything optimized for size
+FULL_OPTIMIZATION = "-Os -pipe ${DEBUG_FLAGS}"
