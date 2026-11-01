@@ -46,6 +46,22 @@ rollback_fixup_run() {
                 info "Copying DTB and DTBO files from $OLD_RESIN_BOOT to $BOOT_MOUNT"
                 find "$OLD_RESIN_BOOT" -maxdepth 1 \( -name "*.dtb" -o -name "*.dtbo" \) -exec cp -f {} "${BOOT_MOUNT}/" \;
                 info "Copied all dtb files from ${OLD_RESIN_BOOT} to the the boot partition for rollback"
+
+                # U-Boot authenticates the balena-bootloader and the dtbs with the IVT offsets
+                # of the release it was built with, so on secure boot the old ones only boot
+                # with the old U-Boot. Roll it back too, so that they always match.
+                OLD_UBOOT_PATH=$(find "$OLD_RESIN_BOOT" -maxdepth 1 -name "${UBOOT_FILE}")
+                if [ -n "$OLD_UBOOT_PATH" ]; then
+                    warn "Rolling back U-boot from $OLD_UBOOT_PATH"
+                    echo 0 > "/sys/block/${BOOTDEV}/force_ro"
+                    if ! dd if="$OLD_UBOOT_PATH" of="/dev/${BOOTDEV}" conv=fsync bs=1024; then
+                        error "Failed to roll back U-boot - system probably won't boot"
+                    fi
+                    echo 1 > "/sys/block/${BOOTDEV}/force_ro"
+                else
+                    warn "Could not locate old U-boot! Continuing anyway..."
+                fi
+
                 sync -f "${BOOT_MOUNT}"
                 umount "${OLDROOT_MOUNT}"
                 umount "${BOOT_MOUNT}"
