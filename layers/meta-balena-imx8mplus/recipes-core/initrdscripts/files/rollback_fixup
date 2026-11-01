@@ -15,6 +15,37 @@ rollback_fixup_enabled() {
     return 0
 }
 
+# Flash U-Boot and read it back from the media to check it, retrying a few times
+# as the device does not boot from a partially written one
+rollback_fixup_flash_uboot() {
+    uboot_path="$1"
+    uboot_size=$(wc -c < "${uboot_path}")
+    uboot_md5=$(md5sum "${uboot_path}" | awk '{print $1}')
+
+    for attempt in 1 2 3; do
+        echo 0 > "/sys/block/${BOOTDEV}/force_ro"
+        if dd if="${uboot_path}" of="/dev/${BOOTDEV}" conv=fsync bs=1024; then
+            # Read it from the media, not from the page cache
+            sync
+            echo 3 > /proc/sys/vm/drop_caches
+            flashed_md5=$(dd if="/dev/${BOOTDEV}" bs=1 count="${uboot_size}" 2>/dev/null | md5sum | awk '{print $1}')
+            if [ "${flashed_md5}" = "${uboot_md5}" ]; then
+                echo 1 > "/sys/block/${BOOTDEV}/force_ro"
+                info "U-boot rolled back from ${uboot_path}"
+                return 0
+            fi
+            warn "U-boot read back does not match ${uboot_path} (attempt ${attempt})"
+        else
+            warn "Failed to write U-boot (attempt ${attempt})"
+        fi
+        sleep 1
+    done
+    echo 1 > "/sys/block/${BOOTDEV}/force_ro"
+
+    error "Failed to roll back U-boot - system probably won't boot"
+    return 1
+}
+
 rollback_fixup_run() {
     OLDROOT_MOUNT="/oldrootfs"
     BOOTDEV="mmcblk2boot0"
@@ -53,11 +84,7 @@ rollback_fixup_run() {
                 OLD_UBOOT_PATH=$(find "$OLD_RESIN_BOOT" -maxdepth 1 -name "${UBOOT_FILE}")
                 if [ -n "$OLD_UBOOT_PATH" ]; then
                     warn "Rolling back U-boot from $OLD_UBOOT_PATH"
-                    echo 0 > "/sys/block/${BOOTDEV}/force_ro"
-                    if ! dd if="$OLD_UBOOT_PATH" of="/dev/${BOOTDEV}" conv=fsync bs=1024; then
-                        error "Failed to roll back U-boot - system probably won't boot"
-                    fi
-                    echo 1 > "/sys/block/${BOOTDEV}/force_ro"
+                    rollback_fixup_flash_uboot "$OLD_UBOOT_PATH" || true
                 else
                     warn "Could not locate old U-boot! Continuing anyway..."
                 fi
@@ -80,11 +107,7 @@ rollback_fixup_run() {
     # Re-program the old U-boot to bypass balena bootloader as the old kernel
     # might not be able to kexec without patches.
     warn "Rolling back U-boot"
-    echo 0 > "/sys/block/${BOOTDEV}/force_ro"
-    if ! dd if="${OLDROOT_MOUNT}/boot/${UBOOT_FILE}" of="/dev/${BOOTDEV}" conv=fsync bs=1024; then
-        error "Failed to roll back U-boot - system probably won't boot"
-    fi
-    echo 1 > "/sys/block/${BOOTDEV}/force_ro"
+    rollback_fixup_flash_uboot "${OLDROOT_MOUNT}/boot/${UBOOT_FILE}" || true
 
     # Configure the old u-boot to perform altboot to restore boot partition contents
     # Set `resin_root_part` to the partition that failed to boot
