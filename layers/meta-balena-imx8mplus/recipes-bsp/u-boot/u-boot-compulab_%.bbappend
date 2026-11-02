@@ -190,6 +190,21 @@ python do_check_spl_ocram:iot-gate-imx8plus () {
     def define(path, name):
         return int(find(read(path), r'^#define\s+%s\s+(\w+)' % name, "%s in %s" % (name, path)), 0)
 
+    # Board config headers define it or include the header of the SoM that does
+    def header_define(path, name, seen=()):
+        text = read(path)
+        m = re.search(r'^#define\s+%s\s+(\w+)' % name, text, re.M)
+        if m:
+            return int(m.group(1), 0)
+        for inc in re.findall(r'^#include\s+["<]([^">]+)[">]', text, re.M):
+            for candidate in (os.path.join(os.path.dirname(path), inc), os.path.join(s, 'include', inc)):
+                if candidate not in seen and os.path.exists(candidate):
+                    try:
+                        return header_define(candidate, name, seen + (path,))
+                    except Exception:
+                        pass
+        raise Exception("%s in %s or the headers it includes not found" % (name, path))
+
     def config(path, name):
         return int(find(read(path), r'^CONFIG_%s=(\w+)' % name, "CONFIG_%s in %s" % (name, path)), 0)
 
@@ -222,7 +237,7 @@ python do_check_spl_ocram:iot-gate-imx8plus () {
                 stack = int(m.group(1), 0)
             else:
                 name = find(dotconfig, r'^CONFIG_SYS_CONFIG_NAME="([^"]+)"', "CONFIG_SYS_CONFIG_NAME")
-                stack = define('%s/include/configs/%s.h' % (s, name), 'CONFIG_SPL_STACK')
+                stack = header_define('%s/include/configs/%s.h' % (s, name), 'CONFIG_SPL_STACK')
             gd_size = define(b + '/include/generated/generic-asm-offsets.h', 'GD_SIZE')
             depth = spl_stack_depth(b + '/spl', d.getVar('SPL_STACK_ROOTS').split())
         except Exception as e:
