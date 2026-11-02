@@ -61,7 +61,7 @@ do_deploy:append () {
 # that the data fits below them. All sizes are read from the U-Boot sources and
 # build, and the stack depth is the worst case of the call graph that GCC writes
 # for the SPL objects.
-SPL_OCRAM_OVERLAP_FATAL ?= "0"
+SPL_OCRAM_OVERLAP_FATAL ?= "1"
 SPL_STACK_ROOTS = "board_init_f board_init_r"
 
 # Only writes .ci files next to the objects, the code does not change
