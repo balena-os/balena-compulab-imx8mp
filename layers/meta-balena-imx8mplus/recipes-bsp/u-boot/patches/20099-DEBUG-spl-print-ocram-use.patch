@@ -25,7 +25,7 @@ diff --git a/arch/arm/mach-imx/spl.c b/arch/arm/mach-imx/spl.c
 +	int i;
 +
 +	if (gd->fdt_blob && !fdt_check_header(gd->fdt_blob))
-+		hash_at = roundup((unsigned long)&_end + fdt_totalsize(gd->fdt_blob), 4) + 0x18000;
++		hash_at = roundup((unsigned long)&_end + fdt_totalsize(gd->fdt_blob), 4) + 0x11000;
 +
 +	printf("DBG mem[%s]: frame=0x%lx gd=%p _end=%p malloc_base=0x%lx used=%lu size=%lu\n",
 +	       where, (ulong)__builtin_frame_address(0), gd, &_end,
