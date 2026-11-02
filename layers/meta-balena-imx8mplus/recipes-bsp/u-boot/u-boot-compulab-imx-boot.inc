@@ -3,7 +3,14 @@
 # conf/layer.conf. Build U-Boot without binman and deploy the SPL and the
 # files imx-boot packages, as the BSP does for NXP U-Boot.
 
-SRC_URI:append = " file://20002-balena-Disable-BINMAN.patch"
+# Without binman, the SPL finds the DDR training firmware that imx-boot appends
+# after it with fixed padded sizes, which have to match IMX_DDR_FW_IMEM_LEN and
+# IMX_DDR_FW_DMEM_LEN (20004)
+require recipes-bsp/imx-mkimage/imx-ddr-fw-padding.inc
+SRC_URI:append = " \
+    file://20002-balena-Disable-BINMAN.patch \
+    file://20004-imx8m-Pad-the-DDR-firmware-data-memory-to-2-KiB.patch \
+"
 
 SPL_BINARY = "spl/u-boot-spl.bin"
 
@@ -31,3 +38,36 @@ do_deploy:append () {
         install -m 0644 ${B}/${config}/u-boot-nodtb.bin ${DEPLOYDIR}/${BOOT_TOOLS}/u-boot-nodtb.bin-${MACHINE}-${UBOOT_CONFIG}
     done
 }
+
+# imx-boot pads the DDR firmware to IMX_DDR_FW_IMEM_LEN and IMX_DDR_FW_DMEM_LEN,
+# check that the SPL finds it with the same sizes
+python do_check_ddr_fw_len () {
+    import re
+
+    def read(path):
+        with open(path) as f:
+            return f.read()
+
+    s = d.getVar('S')
+    helper = s + '/drivers/ddr/imx/phy/helper.c'
+    text = read(helper)
+
+    def define(name):
+        m = re.search(r'^#define\s+%s\s+(\w+)' % name, text, re.M)
+        if not m:
+            bb.fatal("%s not found in %s" % (name, helper))
+        return int(m.group(1), 0)
+
+    imem, dmem = define('IMEM_LEN'), define('DMEM_LEN')
+    pad_imem, pad_dmem = int(d.getVar('IMX_DDR_FW_IMEM_LEN'), 0), int(d.getVar('IMX_DDR_FW_DMEM_LEN'), 0)
+    if (imem, dmem) != (pad_imem, pad_dmem):
+        bb.fatal("The SPL loads the DDR firmware with 0x%x/0x%x bytes of instruction/data memory, imx-boot pads it to 0x%x/0x%x"
+                 % (imem, dmem, pad_imem, pad_dmem))
+    if define('IMEM_2D_OFFSET') != imem + dmem:
+        bb.fatal("IMEM_2D_OFFSET in %s is not IMEM_LEN + DMEM_LEN" % helper)
+    # spl_verify_fit_hash() has the size of the firmware hardcoded
+    if not re.search(r'\+ 0x%x;' % (2 * (imem + dmem)), read(s + '/arch/arm/mach-imx/spl.c')):
+        bb.fatal("spl_verify_fit_hash() does not use the 0x%x bytes of DDR firmware" % (2 * (imem + dmem)))
+}
+do_check_ddr_fw_len[vardeps] += "IMX_DDR_FW_IMEM_LEN IMX_DDR_FW_DMEM_LEN"
+addtask check_ddr_fw_len after do_patch before do_compile
