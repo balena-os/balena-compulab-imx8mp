@@ -2,6 +2,11 @@
 
 # v6.0.5
 
+# v9.0.3+rev2
+## (2026-11-02)
+
+* Update balena-os/github-workflows to 75f1aaba4ccc7f4b0370c16a779a7113cc2bc596 [balena-renovate[bot]]
+
 # v9.0.3+rev1
 ## (2026-10-29)
 
