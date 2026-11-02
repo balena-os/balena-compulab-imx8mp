@@ -22,3 +22,6 @@ do_unpack[nostamp]="1"
 do_patch[nostamp]="1"
 do_configure[nostamp] = "1"
 do_compile[nostamp] = "1"
+
+# Build the boot image with imx-boot instead of binman
+require u-boot-compulab-imx-boot.inc
