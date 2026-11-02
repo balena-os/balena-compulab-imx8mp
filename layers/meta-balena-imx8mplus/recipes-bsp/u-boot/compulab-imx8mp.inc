@@ -5,7 +5,9 @@ SRC_URI:append = " \
 	file://20002-balena-Disable-BINMAN.patch \
 	file://20003-Share-the-DDR-PHY-trained-CSR-table-for-imx8mp.patch \
 	file://20004-imx8m-Pad-the-DDR-firmware-data-memory-to-2-KiB.patch \
+	file://20005-spl-Report-the-initial-stack-use-when-it-is-kept-until-the-jump.patch \
 	file://env_size.cfg \
+	file://spl-ocram.cfg \
 "
 
 SRC_URI:append:iot-gate-imx8plus = " \

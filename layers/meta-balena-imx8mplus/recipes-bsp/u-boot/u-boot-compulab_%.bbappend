@@ -54,24 +54,6 @@ do_deploy:append () {
     done
 }
 
-# The SPL runs from the OCRAM and finds what imx-mkimage appends after it (the
-# DDR firmware, padded, and the FIT hash) right after its own image and DTB.
-# The early malloc pool, gd and the stack are placed at the top of the SPL area
-# and nothing stops them from overwriting that data when the SPL grows. Check
-# that the data fits below them. All sizes are read from the U-Boot sources and
-# build, and the stack depth is the worst case of the call graph that GCC writes
-# for the SPL objects.
-SPL_OCRAM_OVERLAP_FATAL ?= "1"
-SPL_STACK_ROOTS = "board_init_f board_init_r"
-# Calls through pointers nested in the worst case stack, the driver model makes
-# them recurse without a static bound
-SPL_STACK_POINTER_LEVELS ?= "4"
-
-# Only writes .ci files next to the objects, the code does not change
-do_compile:prepend:iot-gate-imx8plus () {
-    export KCFLAGS="${KCFLAGS} -fcallgraph-info=su"
-}
-
 # DEBUG ONLY, remove with 20098. Print the symbols of U-Boot proper and of the SPL
 # in the log, to look up the addresses that 20098 writes to the UART
 do_compile:append:iot-gate-imx8plus () {
@@ -83,112 +65,25 @@ do_compile:append:iot-gate-imx8plus () {
     done
 }
 
-# Worst case stack depth in bytes of the call chains that start at the roots,
-# from the .ci files below top. Calls through a function pointer may reach any
-# function that nothing calls directly, which is where such pointers come from,
-# so the deepest of those is assumed for them. Those functions call through
-# pointers too (driver model ops), which recurse without a static bound, so
-# only up to levels calls through pointers are nested, deeper ones count as no
-# stack. Functions without stack information (assembly, libgcc) count as no
-# stack.
-def spl_stack_depth(top, roots, levels):
+# The SPL runs from the OCRAM. imx-boot appends the DDR firmware, padded, and the
+# FIT hash right after its image and DTB, and the stack, gd and the early malloc
+# pool are at the top of the SPL area, below CONFIG_SPL_STACK. The U-Boot build
+# checks that the SPL image fits in CONFIG_SPL_SIZE_LIMIT (spl-ocram.cfg) once
+# these and a stack budget are subtracted, the limit has to leave out the DDR
+# firmware and the hash, check that it matches the layout
+python do_check_spl_layout () {
     import os
     import re
-
-    node_re = re.compile(r'node: \{ title: "([^"]+)" label: "([^"]*)"')
-    edge_re = re.compile(r'edge: \{ sourcename: "([^"]+)" targetname: "([^"]+)"')
-    frame_re = re.compile(r'(\d+) bytes \(static\)')
-    indirect = '__indirect_call'
-
-    frame, calls = {}, {}
-    for dirpath, _, files in os.walk(top):
-        for name in files:
-            if not name.endswith('.ci'):
-                continue
-            with open(os.path.join(dirpath, name)) as f:
-                for line in f:
-                    m = node_re.match(line)
-                    if m:
-                        fm = frame_re.search(m.group(2))
-                        if fm:
-                            # static functions of different files can share a
-                            # name, keep the largest
-                            frame[m.group(1)] = max(frame.get(m.group(1), 0), int(fm.group(1)))
-                        continue
-                    m = edge_re.match(line)
-                    if m:
-                        calls.setdefault(m.group(1), set()).add(m.group(2))
-
-    missing = [r for r in roots if r not in frame]
-    if not frame or missing:
-        raise Exception("No stack information for %s in %s" % (missing or "any function", top))
-
-    called = set()
-    for dsts in calls.values():
-        called |= {d for d in dsts if d != indirect}
-    targets = [f for f in frame if f not in called and f not in roots]
-
-    # pointer_depth[k] is the deepest stack of a call through a pointer made
-    # with k - 1 of them already in the chain, none past the limit
-    pointer_depth = [0] * (levels + 2)
-    memo = {}
-
-    # Direct recursion is not expected in the SPL, a function that is already
-    # in the chain adds nothing
-    def depth(f, chain, level):
-        if f in chain:
-            return 0
-        if (f, level) in memo:
-            return memo[(f, level)]
-        deepest = 0
-        for callee in calls.get(f, ()):
-            if callee == indirect:
-                deepest = max(deepest, pointer_depth[min(level + 1, levels + 1)])
-            else:
-                deepest = max(deepest, depth(callee, chain | {f}, level))
-        result = frame.get(f, 0) + deepest
-        # a result computed inside a cycle depends on the chain, do not keep it
-        if not (calls.get(f, set()) & chain):
-            memo[(f, level)] = result
-        return result
-
-    direct = max(depth(r, frozenset(), levels + 1) for r in roots)
-    # The innermost level first, each one calls into the next
-    for k in range(levels, 0, -1):
-        pointer_depth[k] = max([depth(t, frozenset(), k) for t in targets] or [0])
-    total = max(depth(r, frozenset(), 0) for r in roots)
-    bb.note("SPL stack: %d bytes with up to %d nested calls through pointers, %d without (%d functions, %d reachable only by pointer, deepest call through a pointer per nesting level: %s)"
-            % (total, levels, direct, len(frame), len(targets), " ".join(str(p) for p in pointer_depth[1:levels + 1])))
-    return total
-
-# Only for the machines that need it, the task exists for all of them
-python do_check_spl_ocram () {
-    pass
-}
-
-python do_check_spl_ocram:iot-gate-imx8plus () {
-    import os
-    import re
-
-    # A check that cannot be computed is reported, it does not stop the build
-    # unless the overlap does
-    def report(msg):
-        if d.getVar('SPL_OCRAM_OVERLAP_FATAL') == '1':
-            bb.fatal(msg)
-        bb.warn(msg)
 
     def read(path):
         with open(path) as f:
             return f.read()
 
-    def find(text, regex, what):
-        m = re.search(regex, text, re.M)
-        if not m:
-            raise Exception("%s not found" % what)
-        return m.group(1)
-
     def define(path, name):
-        return int(find(read(path), r'^#define\s+%s\s+(\w+)' % name, "%s in %s" % (name, path)), 0)
+        m = re.search(r'^#define\s+%s\s+(\w+)' % name, read(path), re.M)
+        if not m:
+            bb.fatal("%s not found in %s" % (name, path))
+        return int(m.group(1), 0)
 
     # Board config headers define it or include the header of the SoM that does
     def header_define(path, name, seen=()):
@@ -199,98 +94,50 @@ python do_check_spl_ocram:iot-gate-imx8plus () {
         for inc in re.findall(r'^#include\s+["<]([^">]+)[">]', text, re.M):
             for candidate in (os.path.join(os.path.dirname(path), inc), os.path.join(s, 'include', inc)):
                 if candidate not in seen and os.path.exists(candidate):
-                    try:
-                        return header_define(candidate, name, seen + (path,))
-                    except Exception:
-                        pass
-        raise Exception("%s in %s or the headers it includes not found" % (name, path))
+                    value = header_define(candidate, name, seen + (path,))
+                    if value is not None:
+                        return value
+        return None
 
-    def config(path, name):
-        return int(find(read(path), r'^CONFIG_%s=(\w+)' % name, "CONFIG_%s in %s" % (name, path)), 0)
-
-    s = d.getVar('S')
-    try:
-        # The firmware is loaded as the 1D and 2D training blobs, each one with
-        # its instruction (imem) and data (dmem) memory padded to these sizes
-        helper = s + '/drivers/ddr/imx/phy/helper.c'
-        fw_pad = 2 * (define(helper, 'IMEM_LEN') + define(helper, 'DMEM_LEN'))
-        hash_len = define(s + '/include/u-boot/sha256.h', 'SHA256_SUM_LEN')
-        # spl_verify_fit_hash() has the padding hardcoded, make sure it still matches
-        if not re.search(r'\+ 0x%x;' % fw_pad, read(s + '/arch/arm/mach-imx/spl.c')):
-            raise Exception("spl_verify_fit_hash() does not use the 0x%x bytes of DDR firmware padding" % fw_pad)
-    except Exception as e:
-        report("SPL OCRAM check skipped: %s, review it" % e)
-        return
-
-    for machine in d.getVar('UBOOT_MACHINE').split():
-        b = '%s/%s' % (d.getVar('B'), machine)
-        try:
-            out, _ = bb.process.run(d.expand('${NM} %s/spl/u-boot-spl' % b))
-            end = int(find(out, r'^([0-9a-f]+) \w _end$', "_end in u-boot-spl"), 16)
-            dtb = os.path.getsize(b + '/spl/u-boot-spl.dtb')
-            pool = config(b + '/.config', 'SPL_SYS_MALLOC_F_LEN')
-            # The stack top is a define of the config header of the board, not
-            # a Kconfig symbol of this U-Boot, use the .config if it is there
-            dotconfig = read(b + '/.config')
-            m = re.search(r'^CONFIG_SPL_STACK=(\w+)', dotconfig, re.M)
-            if m:
-                stack = int(m.group(1), 0)
-            else:
-                name = find(dotconfig, r'^CONFIG_SYS_CONFIG_NAME="([^"]+)"', "CONFIG_SYS_CONFIG_NAME")
-                stack = header_define('%s/include/configs/%s.h' % (s, name), 'CONFIG_SPL_STACK')
-            gd_size = define(b + '/include/generated/generic-asm-offsets.h', 'GD_SIZE')
-            depth = spl_stack_depth(b + '/spl', d.getVar('SPL_STACK_ROOTS').split(), int(d.getVar('SPL_STACK_POINTER_LEVELS')))
-        except Exception as e:
-            report("SPL OCRAM check %s skipped: %s, review it" % (machine, e))
-            continue
-
-        # As in spl_verify_fit_hash(): roundup(&_end + fdt_totalsize, 4) + firmware
-        fw_start = (end + dtb + 3) // 4 * 4
-        data_end = fw_start + fw_pad + hash_len
-        # As in board_init_f_alloc_reserve(): the pool, then gd rounded down to
-        # 16 bytes, from the stack top. The C stack grows down from there
-        gd_at = (stack - pool - gd_size) // 16 * 16
-        limit = gd_at - depth
-        margin = limit - data_end
-        bb.note("SPL OCRAM %s: firmware at 0x%x, data ends at 0x%x, gd at 0x%x (stack top 0x%x, pool 0x%x, gd 0x%x), usable up to 0x%x with %d bytes of stack"
-                % (machine, fw_start, data_end, gd_at, stack, pool, gd_size, limit, depth))
-        if margin < 0:
-            report("SPL OCRAM check %s: the DDR firmware and hash overlap the early malloc pool, gd and stack by %d bytes" % (machine, -margin))
-        else:
-            bb.note("SPL OCRAM %s: %d bytes of margin" % (machine, margin))
-}
-do_check_spl_ocram[nostamp] = "1"
-addtask check_spl_ocram after do_compile before do_install
-
-# imx-boot pads the DDR firmware to IMX_DDR_FW_IMEM_LEN and IMX_DDR_FW_DMEM_LEN,
-# check that the SPL finds it with the same sizes
-python do_check_ddr_fw_len () {
-    import re
-
-    def read(path):
-        with open(path) as f:
-            return f.read()
-
-    s = d.getVar('S')
-    helper = s + '/drivers/ddr/imx/phy/helper.c'
-    text = read(helper)
-
-    def define(name):
-        m = re.search(r'^#define\s+%s\s+(\w+)' % name, text, re.M)
+    def config(text, name):
+        m = re.search(r'^CONFIG_%s=(\S+)' % name, text, re.M)
         if not m:
-            bb.fatal("%s not found in %s" % (name, helper))
-        return int(m.group(1), 0)
+            bb.fatal("CONFIG_%s is not set in the U-Boot configuration" % name)
+        return m.group(1).strip('"')
 
-    imem, dmem = define('IMEM_LEN'), define('DMEM_LEN')
+    s = d.getVar('S')
+
+    # imx-boot pads the DDR firmware to IMX_DDR_FW_IMEM_LEN and
+    # IMX_DDR_FW_DMEM_LEN, the SPL has to find it with the same sizes
+    helper = s + '/drivers/ddr/imx/phy/helper.c'
+    imem, dmem = define(helper, 'IMEM_LEN'), define(helper, 'DMEM_LEN')
     pad_imem, pad_dmem = int(d.getVar('IMX_DDR_FW_IMEM_LEN'), 0), int(d.getVar('IMX_DDR_FW_DMEM_LEN'), 0)
     if (imem, dmem) != (pad_imem, pad_dmem):
         bb.fatal("The SPL loads the DDR firmware with 0x%x/0x%x bytes of instruction/data memory, imx-boot pads it to 0x%x/0x%x"
                  % (imem, dmem, pad_imem, pad_dmem))
-    if define('IMEM_2D_OFFSET') != imem + dmem:
+    if define(helper, 'IMEM_2D_OFFSET') != imem + dmem:
         bb.fatal("IMEM_2D_OFFSET in %s is not IMEM_LEN + DMEM_LEN" % helper)
+    fw = 2 * (imem + dmem)
     # spl_verify_fit_hash() has the size of the firmware hardcoded
-    if not re.search(r'\+ 0x%x;' % (2 * (imem + dmem)), read(s + '/arch/arm/mach-imx/spl.c')):
-        bb.fatal("spl_verify_fit_hash() does not use the 0x%x bytes of DDR firmware" % (2 * (imem + dmem)))
+    if not re.search(r'\+ 0x%x;' % fw, read(s + '/arch/arm/mach-imx/spl.c')):
+        bb.fatal("spl_verify_fit_hash() does not use the 0x%x bytes of DDR firmware" % fw)
+    hash_len = define(s + '/include/u-boot/sha256.h', 'SHA256_SUM_LEN')
+
+    for machine in d.getVar('UBOOT_MACHINE').split():
+        dotconfig = read('%s/%s/.config' % (d.getVar('B'), machine))
+        limit = int(config(dotconfig, 'SPL_SIZE_LIMIT'), 0)
+        text_base = int(config(dotconfig, 'SPL_TEXT_BASE'), 0)
+        name = config(dotconfig, 'SYS_CONFIG_NAME')
+        stack = header_define('%s/include/configs/%s.h' % (s, name), 'CONFIG_SPL_STACK')
+        if stack is None:
+            bb.fatal("CONFIG_SPL_STACK not found in %s.h or the headers it includes" % name)
+        expected = stack - text_base - fw - hash_len
+        if limit != expected:
+            bb.fatal("U-Boot %s: CONFIG_SPL_SIZE_LIMIT is 0x%x, the SPL area from 0x%x to the stack top 0x%x without 0x%x bytes of DDR firmware and hash is 0x%x"
+                     % (machine, limit, text_base, stack, fw + hash_len, expected))
+        bb.note("U-Boot %s: CONFIG_SPL_SIZE_LIMIT 0x%x matches the SPL area from 0x%x to 0x%x without 0x%x bytes of DDR firmware and hash"
+                % (machine, limit, text_base, stack, fw + hash_len))
 }
-do_check_ddr_fw_len[vardeps] += "IMX_DDR_FW_IMEM_LEN IMX_DDR_FW_DMEM_LEN"
-addtask check_ddr_fw_len after do_patch before do_compile
+do_check_spl_layout[vardeps] += "IMX_DDR_FW_IMEM_LEN IMX_DDR_FW_DMEM_LEN"
+do_check_spl_layout[nostamp] = "1"
+addtask check_spl_layout after do_configure before do_compile
