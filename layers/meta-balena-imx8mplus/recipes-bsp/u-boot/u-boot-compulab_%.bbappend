@@ -63,6 +63,9 @@ do_deploy:append () {
 # for the SPL objects.
 SPL_OCRAM_OVERLAP_FATAL ?= "1"
 SPL_STACK_ROOTS = "board_init_f board_init_r"
+# Calls through pointers nested in the worst case stack, the driver model makes
+# them recurse without a static bound
+SPL_STACK_POINTER_LEVELS ?= "4"
 
 # Only writes .ci files next to the objects, the code does not change
 do_compile:prepend:iot-gate-imx8plus () {
@@ -83,9 +86,12 @@ do_compile:append:iot-gate-imx8plus () {
 # Worst case stack depth in bytes of the call chains that start at the roots,
 # from the .ci files below top. Calls through a function pointer may reach any
 # function that nothing calls directly, which is where such pointers come from,
-# so the deepest of those is assumed for them. Functions without stack
-# information (assembly, libgcc) count as no stack.
-def spl_stack_depth(top, roots):
+# so the deepest of those is assumed for them. Those functions call through
+# pointers too (driver model ops), which recurse without a static bound, so
+# only up to levels calls through pointers are nested, deeper ones count as no
+# stack. Functions without stack information (assembly, libgcc) count as no
+# stack.
+def spl_stack_depth(top, roots, levels):
     import os
     import re
 
@@ -122,43 +128,37 @@ def spl_stack_depth(top, roots):
         called |= {d for d in dsts if d != indirect}
     targets = [f for f in frame if f not in called and f not in roots]
 
-    pointer_depth = [0]
+    # pointer_depth[k] is the deepest stack of a call through a pointer made
+    # with k - 1 of them already in the chain, none past the limit
+    pointer_depth = [0] * (levels + 2)
     memo = {}
 
-    # Recursion is not expected in the SPL, a function that is already in the
-    # chain adds nothing
-    def depth(f, chain):
+    # Direct recursion is not expected in the SPL, a function that is already
+    # in the chain adds nothing
+    def depth(f, chain, level):
         if f in chain:
             return 0
-        if f in memo:
-            return memo[f]
+        if (f, level) in memo:
+            return memo[(f, level)]
         deepest = 0
         for callee in calls.get(f, ()):
             if callee == indirect:
-                deepest = max(deepest, pointer_depth[0])
+                deepest = max(deepest, pointer_depth[min(level + 1, levels + 1)])
             else:
-                deepest = max(deepest, depth(callee, chain | {f}))
+                deepest = max(deepest, depth(callee, chain | {f}, level))
         result = frame.get(f, 0) + deepest
         # a result computed inside a cycle depends on the chain, do not keep it
         if not (calls.get(f, set()) & chain):
-            memo[f] = result
+            memo[(f, level)] = result
         return result
 
-    direct = max(depth(r, frozenset()) for r in roots)
-    # The functions reached by pointer may call through pointers too, iterate
-    # until the depth settles
-    for _ in range(8):
-        memo.clear()
-        new = max([depth(t, frozenset()) for t in targets] or [0])
-        if new == pointer_depth[0]:
-            break
-        pointer_depth[0] = new
-    else:
-        raise Exception("The stack depth through function pointers of %s does not settle" % top)
-    memo.clear()
-    total = max(depth(r, frozenset()) for r in roots)
-    bb.note("SPL stack: %d bytes with calls through pointers, %d without (%d functions, %d reachable only by pointer)"
-            % (total, direct, len(frame), len(targets)))
+    direct = max(depth(r, frozenset(), levels + 1) for r in roots)
+    # The innermost level first, each one calls into the next
+    for k in range(levels, 0, -1):
+        pointer_depth[k] = max([depth(t, frozenset(), k) for t in targets] or [0])
+    total = max(depth(r, frozenset(), 0) for r in roots)
+    bb.note("SPL stack: %d bytes with up to %d nested calls through pointers, %d without (%d functions, %d reachable only by pointer, deepest call through a pointer per nesting level: %s)"
+            % (total, levels, direct, len(frame), len(targets), " ".join(str(p) for p in pointer_depth[1:levels + 1])))
     return total
 
 # Only for the machines that need it, the task exists for all of them
@@ -239,7 +239,7 @@ python do_check_spl_ocram:iot-gate-imx8plus () {
                 name = find(dotconfig, r'^CONFIG_SYS_CONFIG_NAME="([^"]+)"', "CONFIG_SYS_CONFIG_NAME")
                 stack = header_define('%s/include/configs/%s.h' % (s, name), 'CONFIG_SPL_STACK')
             gd_size = define(b + '/include/generated/generic-asm-offsets.h', 'GD_SIZE')
-            depth = spl_stack_depth(b + '/spl', d.getVar('SPL_STACK_ROOTS').split())
+            depth = spl_stack_depth(b + '/spl', d.getVar('SPL_STACK_ROOTS').split(), int(d.getVar('SPL_STACK_POINTER_LEVELS')))
         except Exception as e:
             report("SPL OCRAM check %s skipped: %s, review it" % (machine, e))
             continue
