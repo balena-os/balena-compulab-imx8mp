@@ -4,6 +4,7 @@ SRC_URI:append = " \
 	file://20001-balena-Fix-env-mmc.c-build-issue.patch \
 	file://20002-balena-Disable-BINMAN.patch \
 	file://20003-Share-the-DDR-PHY-trained-CSR-table-for-imx8mp.patch \
+	file://20004-imx8m-Pad-the-DDR-firmware-data-memory-to-2-KiB.patch \
 	file://env_size.cfg \
 "
 
