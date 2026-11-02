@@ -6,6 +6,15 @@ DEPENDS += "rsync-native"
 
 SRC_URI:append = "file://balena.cfg"
 
+# do_configure is a noexec task in the Compulab kernel, so the kmod.crt install
+# done by meta-balena in do_configure:append never runs (its depends still do)
+do_compile:prepend() {
+    if [ -f "${DEPLOY_DIR_IMAGE}/balena-keys/kmod.crt" ]; then
+        install -d ${B}/certs
+        install -m 0655 "${DEPLOY_DIR_IMAGE}/balena-keys/kmod.crt" ${B}/certs/
+    fi
+}
+
 KERNEL_PACKAGE_NAME="kernel"
 
 SCMVERSION="n"
