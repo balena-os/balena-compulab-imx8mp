@@ -1,4 +1,19 @@
 - commits:
+    - subject: Update layers/meta-compulab-bsp to
+        34ca4f5bfe44f07754b3bbb5bbde865ca4181f8e
+      hash: 3f734f6d84f51b9ecce36de56c9da418a16763e4
+      body: Update layers/meta-compulab-bsp
+      footer:
+        Changelog-entry: Update layers/meta-compulab-bsp to
+          34ca4f5bfe44f07754b3bbb5bbde865ca4181f8e
+        changelog-entry: Update layers/meta-compulab-bsp to
+          34ca4f5bfe44f07754b3bbb5bbde865ca4181f8e
+      author: balena-renovate[bot]
+      nested: []
+  version: 9.0.3+rev3
+  title: ""
+  date: 2026-11-03T08:40:31.048Z
+- commits:
     - subject: Update balena-os/github-workflows to
         75f1aaba4ccc7f4b0370c16a779a7113cc2bc596
       hash: 7d3ceb5126478ce7f553b36d218597bed471fd1c
