@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: guille-vega <guillermo.vega@balena.io>
+Date: Mon, 2 Nov 2026 07:46:16 +0100
+Subject: iMX8M: soc.mak: Make the LPDDR4 firmware padding configurable
+
+The LPDDR4 training firmware is padded to 32 KiB for the instruction
+memory and to 16 KiB for the data memory, and the SPL expects that
+layout when it does not use binman. The data memory blobs are below 2
+KiB, so most of it is padding, which takes OCRAM from the SPL.
+
+Allow to set the padding with LPDDR_FW_IMEM_LEN and LPDDR_FW_DMEM_LEN,
+for a SPL that expects a smaller one. The default stays the same.
+
+Signed-off-by: guille-vega <guillermo.vega@balena.io>
+---
+ iMX8M/soc.mak | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
+index f1b37a4..1fd819a 100644
+--- a/iMX8M/soc.mak
++++ b/iMX8M/soc.mak
+@@ -94,16 +94,20 @@ $(MKIMG): ../$(SOC_DIR)/mkimage_imx8.c
+ 	@echo "Compiling mkimage_imx8"
+ 	$(CC) $(CFLAGS) ../$(SOC_DIR)/mkimage_imx8.c -o $(MKIMG) $(BUILD_LDFLAGS) -lz
+ 
++# Size the LPDDR4 training firmware is padded to, the SPL expects it
++LPDDR_FW_IMEM_LEN ?= 0x8000
++LPDDR_FW_DMEM_LEN ?= 0x4000
++
+ lpddr4_imem_1d = lpddr4_pmu_train_1d_imem$(LPDDR_FW_VERSION).bin
+ lpddr4_dmem_1d = lpddr4_pmu_train_1d_dmem$(LPDDR_FW_VERSION).bin
+ lpddr4_imem_2d = lpddr4_pmu_train_2d_imem$(LPDDR_FW_VERSION).bin
+ lpddr4_dmem_2d = lpddr4_pmu_train_2d_dmem$(LPDDR_FW_VERSION).bin
+ 
+ u-boot-spl-ddr.bin: u-boot-spl.bin $(lpddr4_imem_1d) $(lpddr4_dmem_1d) $(lpddr4_imem_2d) $(lpddr4_dmem_2d)
+-	@objcopy -I binary -O binary --pad-to 0x8000 --gap-fill=0x0 $(lpddr4_imem_1d) lpddr4_pmu_train_1d_imem_pad.bin
+-	@objcopy -I binary -O binary --pad-to 0x4000 --gap-fill=0x0 $(lpddr4_dmem_1d) lpddr4_pmu_train_1d_dmem_pad.bin
+-	@objcopy -I binary -O binary --pad-to 0x8000 --gap-fill=0x0 $(lpddr4_imem_2d) lpddr4_pmu_train_2d_imem_pad.bin
+-	@objcopy -I binary -O binary --pad-to 0x4000 --gap-fill=0x0 $(lpddr4_dmem_2d) lpddr4_pmu_train_2d_dmem_pad.bin
++	@objcopy -I binary -O binary --pad-to $(LPDDR_FW_IMEM_LEN) --gap-fill=0x0 $(lpddr4_imem_1d) lpddr4_pmu_train_1d_imem_pad.bin
++	@objcopy -I binary -O binary --pad-to $(LPDDR_FW_DMEM_LEN) --gap-fill=0x0 $(lpddr4_dmem_1d) lpddr4_pmu_train_1d_dmem_pad.bin
++	@objcopy -I binary -O binary --pad-to $(LPDDR_FW_IMEM_LEN) --gap-fill=0x0 $(lpddr4_imem_2d) lpddr4_pmu_train_2d_imem_pad.bin
++	@objcopy -I binary -O binary --pad-to $(LPDDR_FW_DMEM_LEN) --gap-fill=0x0 $(lpddr4_dmem_2d) lpddr4_pmu_train_2d_dmem_pad.bin
+ 	@cat lpddr4_pmu_train_1d_imem_pad.bin lpddr4_pmu_train_1d_dmem_pad.bin > lpddr4_pmu_train_1d_fw.bin
+ 	@cat lpddr4_pmu_train_2d_imem_pad.bin lpddr4_pmu_train_2d_dmem_pad.bin > lpddr4_pmu_train_2d_fw.bin
+ 	@dd if=u-boot-spl.bin of=u-boot-spl-pad.bin bs=4 conv=sync

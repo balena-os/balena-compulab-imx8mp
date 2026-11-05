@@ -41,7 +41,7 @@
 [submodule "layers/meta-balena-hab"]
 	path = layers/meta-balena-hab
 	url = https://github.com/balena-os/meta-balena-hab.git
-	branch = master
+	branch = scarthgap
 [submodule "layers/meta-arm"]
 	path = layers/meta-arm
 	url = https://git.yoctoproject.org/meta-arm
