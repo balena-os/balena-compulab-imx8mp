@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update layers/meta-freescale to 950c3c516e15e98f27e4d70df646c2b06ec7c914
+      hash: fe6baf1d93093440f30060839490ec120c1fb384
+      body: Update layers/meta-freescale
+      footer:
+        Changelog-entry: Update layers/meta-freescale to
+          950c3c516e15e98f27e4d70df646c2b06ec7c914
+        changelog-entry: Update layers/meta-freescale to
+          950c3c516e15e98f27e4d70df646c2b06ec7c914
+      author: balena-renovate[bot]
+      nested: []
+  version: 9.0.3+rev4
+  title: ""
+  date: 2026-11-09T22:41:08.196Z
+- commits:
     - subject: Update layers/meta-compulab-bsp to
         34ca4f5bfe44f07754b3bbb5bbde865ca4181f8e
       hash: 3f734f6d84f51b9ecce36de56c9da418a16763e4
