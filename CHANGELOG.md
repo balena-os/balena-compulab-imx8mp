@@ -2,6 +2,21 @@
 
 # v6.0.5
 
+# v9.0.3+rev5
+## (2026-11-10)
+
+
+<details>
+<summary> Update contracts to 17d87d30099bcc7bbd457488c19e626dd658ac97 [balena-renovate[bot]] </summary>
+
+> ## contracts-2.0.151
+> ### (2026-11-03)
+> 
+> * hw.device-type: Add new device-type - Compulab IOT-GATE-RPI5 [Alexandru Costache]
+> 
+
+</details>
+
 # v9.0.3+rev4
 ## (2026-11-09)
 

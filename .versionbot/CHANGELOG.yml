@@ -1,4 +1,31 @@
 - commits:
+    - subject: Update contracts to 17d87d30099bcc7bbd457488c19e626dd658ac97
+      hash: 3baaaa13ce238fa69884a5e0985b13ea9feac327
+      body: Update contracts
+      footer:
+        Changelog-entry: Update contracts to 17d87d30099bcc7bbd457488c19e626dd658ac97
+        changelog-entry: Update contracts to 17d87d30099bcc7bbd457488c19e626dd658ac97
+      author: balena-renovate[bot]
+      nested:
+        - commits:
+            - subject: "hw.device-type: Add new device-type - Compulab IOT-GATE-RPI5"
+              hash: 654d03f81ec00d71588a2a023ba0d8b454d8e40e
+              body: >
+                ... and improve instructions in RaspberryPi4 CM4 IOBoard
+                contract.
+              footer:
+                Change-type: patch
+                change-type: patch
+                Signed-off-by: Alexandru Costache <alexandru@balena.io>
+                signed-off-by: Alexandru Costache <alexandru@balena.io>
+              author: Alexandru Costache
+          version: contracts-2.0.151
+          title: ""
+          date: 2026-11-03T07:53:38.332Z
+  version: 9.0.3+rev5
+  title: ""
+  date: 2026-11-10T02:12:37.474Z
+- commits:
     - subject: Update layers/meta-freescale to 950c3c516e15e98f27e4d70df646c2b06ec7c914
       hash: fe6baf1d93093440f30060839490ec120c1fb384
       body: Update layers/meta-freescale
