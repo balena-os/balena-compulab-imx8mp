@@ -2,6 +2,43 @@
 
 # v6.0.5
 
+# v9.0.6
+## (2026-11-12)
+
+
+<details>
+<summary> Update layers/meta-balena to 48184b689a43b762c5eea6efbc16b018eed70839 [balena-renovate[bot]] </summary>
+
+> ## meta-balena-9.0.6
+> ### (2026-11-09)
+> 
+> * tests: os: config-json: use the shared journal helper [Alex Gonzalez]
+> * dnsmasq: move the settings to a conf.d drop-in [Alex Gonzalez]
+> 
+> ## meta-balena-9.0.5
+> ### (2026-11-05)
+> 
+> 
+> <details>
+> <summary> Update tests/leviathan digest to 2444d08 [balena-renovate[bot]] </summary>
+> 
+>> ### leviathan-2.36.134
+>> #### (2026-11-05)
+>> 
+>> * core/contracts: Update to v2.0.151 [Alexandru Costache]
+>> 
+> 
+> </details>
+> 
+> 
+> ## meta-balena-9.0.4
+> ### (2026-10-29)
+> 
+> * balena-os.inc: Derive the board VERSION path from COREBASE [Alex Gonzalez]
+> 
+
+</details>
+
 # v9.0.3+rev6
 ## (2026-11-11)
 
