@@ -22,3 +22,10 @@ do_unpack[nostamp]="1"
 do_patch[nostamp]="1"
 do_configure[nostamp] = "1"
 do_compile[nostamp] = "1"
+
+# Build the boot image with imx-boot instead of binman
+require u-boot-compulab-imx-boot.inc
+
+# Debugging aids, see u-boot-compulab-debug.inc
+UBOOT_COMPULAB_DEBUG ?= "0"
+require ${@'u-boot-compulab-debug.inc' if d.getVar('UBOOT_COMPULAB_DEBUG') == '1' else ''}
