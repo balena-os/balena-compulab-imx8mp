@@ -2,6 +2,21 @@
 
 # v6.0.5
 
+# v9.0.6+rev1
+## (2026-11-14)
+
+
+<details>
+<summary> Update balena-yocto-scripts to 6396c352087dfb8e51878aac70a59b5806eafebf [balena-renovate[bot]] </summary>
+
+> ## balena-yocto-scripts-1.42.18
+> ### (2026-11-13)
+> 
+> * build/barys: Follow symlinks when looking for conf sample files [Florin Sarbu]
+> 
+
+</details>
+
 # v9.0.6
 ## (2026-11-12)
 
