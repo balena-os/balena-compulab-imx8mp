@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: guille-vega <guillermo.vega@balena.io>
+Date: Mon, 2 Nov 2026 07:45:38 +0100
+Subject: imx8m: Pad the DDR firmware data memory to 2 KiB
+
+Without binman the SPL finds the DDR training firmware after its own
+image and DTB with a fixed layout: the instruction memory padded to 32
+KiB and the data memory to 16 KiB, for the 1D and the 2D firmware, and
+the FIT hash after them. The data memory blobs are below 2 KiB, so most
+of these 96 KiB are padding, and with a SPL as large as the one with HAB
+they reach the early malloc pool, gd and the stack at the top of the SPL
+OCRAM area.
+
+Pad the data memory to 2 KiB, which saves 28 KiB. imx-mkimage has to
+pad the firmware the same way.
+
+Signed-off-by: guille-vega <guillermo.vega@balena.io>
+---
+ arch/arm/mach-imx/spl.c      | 4 ++--
+ drivers/ddr/imx/phy/helper.c | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/mach-imx/spl.c b/arch/arm/mach-imx/spl.c
+index 2ca3d2b..9e9325a 100644
+--- a/arch/arm/mach-imx/spl.c
++++ b/arch/arm/mach-imx/spl.c
+@@ -365,10 +365,10 @@ static int spl_verify_fit_hash(const void *fit)
+ #if CONFIG_IS_ENABLED(OF_CONTROL)
+ 	if (gd->fdt_blob && !fdt_check_header(gd->fdt_blob)) {
+ 		fit_hash = roundup((unsigned long)&_end +
+-				     fdt_totalsize(gd->fdt_blob), 4) + 0x18000;
++				     fdt_totalsize(gd->fdt_blob), 4) + 0x11000;
+ 	}
+ #else
+-	fit_hash = (unsigned long)&_end + 0x18000;
++	fit_hash = (unsigned long)&_end + 0x11000;
+ #endif
+ 
+ 	size = fdt_totalsize(fit);
+diff --git a/drivers/ddr/imx/phy/helper.c b/drivers/ddr/imx/phy/helper.c
+index 7577a03..ef42d65 100644
+--- a/drivers/ddr/imx/phy/helper.c
++++ b/drivers/ddr/imx/phy/helper.c
+@@ -18,8 +18,8 @@
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+ #define IMEM_LEN 32768 /* byte */
+-#define DMEM_LEN 16384 /* byte */
+-#define IMEM_2D_OFFSET	49152
++#define DMEM_LEN 2048 /* byte */
++#define IMEM_2D_OFFSET	34816
+ 
+ #define IMEM_OFFSET_ADDR 0x00050000
+ #define DMEM_OFFSET_ADDR 0x00054000
